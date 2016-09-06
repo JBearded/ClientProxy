@@ -15,14 +15,13 @@ public class Main {
     public static void main(String[] args) throws InterruptedException {
 
 
-        Configure.Builder builder = new Configure.Builder();
-        builder.checkServerAvailableIntervalMs(1000 * 60 * 10);
-        builder.loadBalanceStrategy(LoadBalanceStrategy.WRR);
-        builder.maxExceptionTimes(10);
-        builder.minExceptionFrequencyMs(1000 * 2);
-        builder.telnetTimeoutMs(1000 * 5);
-        Configure configure = builder.build();
-
+        Configure configure = new Configure.Builder()
+                .checkServerAvailableIntervalMs(1000 * 60 * 10)
+                .loadBalanceStrategy(LoadBalanceStrategy.WRR)
+                .maxExceptionTimes(10)
+                .minExceptionFrequencyMs(1000 * 2)
+                .telnetTimeoutMs(1000 * 5)
+                .build();
 
         ClientProxy mongoProxy = new ClientProxy(new RedisInfoResolver("mongo.xml"), configure);
 
