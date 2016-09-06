@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mongos>
+    <mongo>
+        <host>127.0.0.1</host>
+        <port>27017</port>
+        <db>test</db>
+        <weight>1</weight>
+    </mongo>
+    <mongo>
+        <host>127.0.0.1</host>
+        <port>27018</port>
+        <db>test</db>
+        <weight>1</weight>
+    </mongo>
+</mongos>
