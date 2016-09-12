@@ -6,7 +6,7 @@
 ## 使用
 
 * 编写实现ClosableClient类的客户端
-* 编写实现ServerInfoResolver类，用于获取服务端信息的列表（也可写死List, 此项目中的测试代码通过解析xml文件来获取服务端信息列表）
+* 编写实现ServerInfoResolver类，用于获取服务端信息的列表（也可在ClientProxy中传入一个ServerInfo List）
 * 运行代理类代码
 
 实现ClosableClient
@@ -61,88 +61,29 @@
         }
     }
 
-实现ServerInfoResolver
-
-    public class RedisInfoResolver extends ServerInfoResolver{
-
-        private static final String REDIS = "redis";
-
-        private static final String HOST = "host";
-        private static final String PORT = "port";
-        private static final String MAXACTIVE = "maxActive";
-        private static final String MAXIDLE = "maxIdle";
-        private static final String MINIDLE = "minIdle";
-        private static final String TIMEOUT = "timeout";
-        private static final String WEIGHT = "weight";
-
-
-        public RedisInfoResolver(String configPath) {
-            super(configPath);
-        }
-
-        @Override
-        public List<ServerInfo> get() {
-            Element root = getRoot(configPath);
-            return getServerInfoList(root);
-        }
-
-        private Element getRoot(String configFileName) {
-
-            Element root = null;
-            try {
-                SAXReader reader = new SAXReader();
-                URL url = ClassLoader.getSystemResource(configFileName);
-                Document document = reader.read(url);
-                root = document.getRootElement();
-            } catch (DocumentException e) {
-                e.printStackTrace();
-            }
-
-            return root;
-        }
-
-        private List<ServerInfo> getServerInfoList(Element root){
-
-            List<ServerInfo> list = new ArrayList<ServerInfo>();
-            List<Element> redisList = root.elements(REDIS);
-            for (Element element : redisList) {
-                ServerInfo serverInfo = getServerInfo(element);
-                list.add(serverInfo);
-            }
-            return list;
-        }
-
-        private ServerInfo getServerInfo(Element element){
-
-            String host = element.element(HOST).getStringValue();
-            int port = Integer.valueOf(element.element(PORT).getStringValue());
-            int maxActive = Integer.valueOf(element.element(MAXACTIVE).getStringValue());
-            int maxIdle = Integer.valueOf(element.element(MAXIDLE).getStringValue());
-            int minIdle = Integer.valueOf(element.element(MINIDLE).getStringValue());
-            int timeout = Integer.valueOf(element.element(TIMEOUT).getStringValue());
-            int weight = Integer.valueOf(element.element(WEIGHT).getStringValue());
-
-            JedisPoolConfig config = new JedisPoolConfig();
-            config.setMaxTotal(maxActive);
-            config.setMaxIdle(maxIdle);
-            config.setMinIdle(minIdle);
-            config.setMaxWaitMillis(timeout);
-            ClientConstructor clientClientConstructor = new ClientConstructor(
-                    RedisClient.class,
-                    new ClientConstructor.Parameter(JedisPoolConfig.class, config),
-                    new ClientConstructor.Parameter(String.class, host),
-                    new ClientConstructor.Parameter(int.class, port),
-                    new ClientConstructor.Parameter(int.class, timeout)
-            );
-
-
-            ServerInfo serverInfo = new ServerInfo(host, port, weight, clientClientConstructor);
-            return serverInfo;
-        }
-
-    }
-
 运行代理类代码
+
+    List<ServerInfo> serverInfos = new ArrayList<ServerInfo>();
+
+    String ip1 = "127.0.0.1";
+    int port1 = 6380;
+    int weight1 = 2;
+
+    String ip2 = "127.0.0.1";
+    int port2 = 6381;
+    int weight2 = 1;
+
+    JedisPoolConfig config = new JedisPoolConfig();
+    config.setMaxTotal(100);
+    config.setMaxIdle(100);
+    config.setMinIdle(20);
+    config.setMaxWaitMillis(5000);
+    ClientConstructor clientClientConstructor = new ClientConstructor(RedisClient.class, config, host, port, timeout);
+
+    ServerInfo serverInfo1 = new ServerInfo(host1, port1, weight1, clientClientConstructor);
+    ServerInfo serverInfo2 = new ServerInfo(host2, port2, weight2, clientClientConstructor);
+    serverInfos.add(serverInfo1);
+    serverInfos.add(serverInfo2);
 
     Configure configure = new Configure.Builder()
                     .checkServerAvailableIntervalMs(1000 * 60 * 10)
@@ -152,11 +93,11 @@
                     .telnetTimeoutMs(1000 * 5)
                     .build();
 
-            ClientProxy<RedisClient> redisProxy = new ClientProxy(new RedisInfoResolver("redis.xml"), configure);
-            for (int i = 0; i < 100; i++) {
-                Thread.sleep(5000);
-                RedisClient client = redisProxy.getClient();
-                if(client != null){
-                    client.setex("hello", "world" + i, 60);
-                }
-            }
+    ClientProxy<RedisClient> redisProxy = new ClientProxy(serverInfos, configure);
+    for (int i = 0; i < 100; i++) {
+        Thread.sleep(5000);
+        RedisClient client = redisProxy.getClient();
+        if(client != null){
+            client.setex("hello", "world" + i, 60);
+        }
+    }
