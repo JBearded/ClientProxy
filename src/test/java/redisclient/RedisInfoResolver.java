@@ -83,10 +83,7 @@ public class RedisInfoResolver extends ServerInfoResolver{
         config.setMaxWaitMillis(timeout);
         ClientConstructor clientClientConstructor = new ClientConstructor(
                 RedisClient.class,
-                new ClientConstructor.Parameter(JedisPoolConfig.class, config),
-                new ClientConstructor.Parameter(String.class, host),
-                new ClientConstructor.Parameter(int.class, port),
-                new ClientConstructor.Parameter(int.class, timeout)
+                config, host, port, timeout
         );
 
 

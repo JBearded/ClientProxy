@@ -1,8 +1,6 @@
 import com.bj.loadbalance.LoadBalanceStrategy;
 import com.bj.proxy.ClientProxy;
 import com.bj.proxy.Configure;
-import mongoclient.MongoProxyClient;
-import org.bson.Document;
 import redisclient.RedisClient;
 import redisclient.RedisInfoResolver;
 
@@ -23,13 +21,13 @@ public class Main {
                 .telnetTimeoutMs(1000 * 5)
                 .build();
 
-        ClientProxy mongoProxy = new ClientProxy(new RedisInfoResolver("mongo.xml"), configure);
-
-        for (int i = 0; i < 20; i++) {
-            Thread.sleep(5000);
-            MongoProxyClient client = (MongoProxyClient) mongoProxy.getClient();
-            client.insertOne("er", new Document().append("hello", i));
-        }
+//        ClientProxy mongoProxy = new ClientProxy(new RedisInfoResolver("mongo.xml"), configure);
+//
+//        for (int i = 0; i < 20; i++) {
+//            Thread.sleep(5000);
+//            MongoProxyClient client = (MongoProxyClient) mongoProxy.getClient();
+//            client.insertOne("er", new Document().append("hello", i));
+//        }
 
 
 

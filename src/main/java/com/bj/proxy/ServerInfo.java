@@ -16,9 +16,9 @@ public class ServerInfo {
 
     private ClosableClient client;
 
-    private ClientConstructor<?> clientConstructor;
+    private ClientConstructor clientConstructor;
 
-    public ServerInfo(String ip, int port, int weight, ClientConstructor<?> clientConstructor) {
+    public ServerInfo(String ip, int port, int weight, ClientConstructor clientConstructor) {
         this.ip = ip;
         this.port = port;
         this.weight = weight;
@@ -45,7 +45,7 @@ public class ServerInfo {
         this.client = client;
     }
 
-    public ClientConstructor<?> getClientConstructor() {
+    public ClientConstructor getClientConstructor() {
         return clientConstructor;
     }
 

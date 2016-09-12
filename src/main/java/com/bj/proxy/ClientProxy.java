@@ -28,7 +28,7 @@ public class ClientProxy<T>{
 
     private LoadBalanceStrategy strategy;
 
-    private ClientProxyFactory clientProxyFactory;
+    private ClientFactory clientFactory;
 
 
     public ClientProxy(ServerInfoResolver resolver) {
@@ -50,7 +50,7 @@ public class ClientProxy<T>{
     protected void init(List<ServerInfo> serverInfoList, Configure configure){
         this.configure = configure;
         this.strategy = configure.getLoadBalanceStrategy();
-        this.clientProxyFactory = new ClientProxyFactory(configure);
+        this.clientFactory = new ClientFactory(configure);
         this.initServerInfo(serverInfoList);
         this.initLoadBalance();
         this.scheduleCheckServerAvailable();
@@ -125,7 +125,7 @@ public class ClientProxy<T>{
     }
 
     protected ClosableClient createClient(ServerInfo serverInfo){
-        ClosableClient client = clientProxyFactory.getClientProxy(serverInfo);
+        ClosableClient client = clientFactory.create(serverInfo);
         serverInfo.setClient(client);
         return client;
     }

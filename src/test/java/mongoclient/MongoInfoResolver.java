@@ -69,9 +69,7 @@ public class MongoInfoResolver extends ServerInfoResolver{
 
         ClientConstructor clientConstructor = new ClientConstructor(
                 MongoProxyClient.class,
-                new ClientConstructor.Parameter(String.class, host),
-                new ClientConstructor.Parameter(int.class, port),
-                new ClientConstructor.Parameter(String.class, db)
+                host, port, db
         );
         ServerInfo serverInfo = new ServerInfo(host, port, weight, clientConstructor);
         return serverInfo;

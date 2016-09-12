@@ -11,9 +11,9 @@ import java.util.List;
 public class ClientConstructor {
 
     private Class<? extends ClosableClient> clientClass;
-    private List<Parameter> parameters = new ArrayList<Parameter>();
+    private List<Object> parameters = new ArrayList<Object>();
 
-    public ClientConstructor(Class<? extends ClosableClient> clientClass, Parameter... parameters) {
+    public ClientConstructor(Class<? extends ClosableClient> clientClass, Object... parameters) {
         this.clientClass = clientClass;
         this.parameters.addAll(Arrays.asList(parameters));
     }
@@ -22,25 +22,7 @@ public class ClientConstructor {
         return clientClass;
     }
 
-    public List<Parameter> getParameters() {
+    public List<Object> getParameters() {
         return parameters;
-    }
-
-    public static class Parameter{
-        private Class<?> type;
-        private Object value;
-
-        public Parameter(Class<?> type, Object value) {
-            this.type = type;
-            this.value = value;
-        }
-
-        public Class<?> getType() {
-            return type;
-        }
-
-        public Object getValue() {
-            return value;
-        }
     }
 }
