@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
+ * 客户端代理的通知器
  * @author 谢俊权
  * @create 2016/5/11 17:57
  */
@@ -20,19 +21,31 @@ public class ClientProxyNotifier {
         return ServerProxyNotifierHolder.notifier;
     }
 
+    /**
+     * 注册需要被通知的客户端代理
+     * @param clientProxy
+     */
     public void subClientProxy(ClientProxy clientProxy){
         this.clientProxies.add(clientProxy);
     }
 
-    public void notifyServerAvailable(ServerInfo serverInfo){
+    /**
+     * 通知客户端代理某个服务不可用
+     * @param clientInfo
+     */
+    public void notifyServerAvailable(ClientInfo clientInfo){
         for(ClientProxy clientProxy : clientProxies){
-            clientProxy.toAvailable(serverInfo);
+            clientProxy.toAvailable(clientInfo);
         }
     }
 
-    public void notifyServerUnavailable(ServerInfo serverInfo){
+    /**
+     * 通知客户端代理某个服务不可用
+     * @param clientInfo
+     */
+    public void notifyServerUnavailable(ClientInfo clientInfo){
         for(ClientProxy clientProxy : clientProxies){
-            clientProxy.toUnavailable(serverInfo);
+            clientProxy.toUnavailable(clientInfo);
         }
     }
 }

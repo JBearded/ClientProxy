@@ -1,8 +1,8 @@
 package mongoclient;
 
 import com.bj.proxy.ClientConstructor;
-import com.bj.proxy.ServerInfo;
-import com.bj.proxy.ServerInfoResolver;
+import com.bj.proxy.ClientInfo;
+import com.bj.proxy.ClientInfoResolver;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
@@ -16,7 +16,7 @@ import java.util.List;
  * @author 谢俊权
  * @create 2016/9/2 16:19
  */
-public class MongoInfoResolver extends ServerInfoResolver{
+public class MongoInfoResolver extends ClientInfoResolver {
 
     private static final String MONGO = "mongo";
 
@@ -30,9 +30,9 @@ public class MongoInfoResolver extends ServerInfoResolver{
     }
 
     @Override
-    public List<ServerInfo> get() {
+    public List<ClientInfo> get() {
         Element root = getRoot(configPath);
-        return getServerInfoList(root);
+        return getClientInfoList(root);
     }
 
     private Element getRoot(String configFileName) {
@@ -50,18 +50,18 @@ public class MongoInfoResolver extends ServerInfoResolver{
         return root;
     }
 
-    private List<ServerInfo> getServerInfoList(Element root){
+    private List<ClientInfo> getClientInfoList(Element root){
 
-        List<ServerInfo> list = new ArrayList<ServerInfo>();
+        List<ClientInfo> list = new ArrayList<ClientInfo>();
         List<Element> redisList = root.elements(MONGO);
         for (Element element : redisList) {
-            ServerInfo serverInfo = getServerInfo(element);
-            list.add(serverInfo);
+            ClientInfo clientInfo = getClientInfo(element);
+            list.add(clientInfo);
         }
         return list;
     }
 
-    private ServerInfo getServerInfo(Element element){
+    private ClientInfo getClientInfo(Element element){
         String host = element.element(HOST).getStringValue();
         int port = Integer.valueOf(element.element(PORT).getStringValue());
         int weight = Integer.valueOf(element.element(WEIGHT).getStringValue());
@@ -71,7 +71,7 @@ public class MongoInfoResolver extends ServerInfoResolver{
                 MongoProxyClient.class,
                 host, port, db
         );
-        ServerInfo serverInfo = new ServerInfo(host, port, weight, clientConstructor);
-        return serverInfo;
+        ClientInfo clientInfo = new ClientInfo(host, port, weight, clientConstructor);
+        return clientInfo;
     }
 }

@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentMap;
  * @author 谢俊权
  * @create 2016/8/31 17:57
  */
-public class ReLoadBalancePolicy {
+public class ClientExceptionPolicy {
 
     private long minExceptionFrequency = 1000 * 2;
 
@@ -15,12 +15,17 @@ public class ReLoadBalancePolicy {
 
     private ConcurrentMap<String, ExceptionInfo> exceptionInfoMap = new ConcurrentHashMap<String, ExceptionInfo>();
 
-    public ReLoadBalancePolicy(long minExceptionFrequency, int maxExceptionTimes) {
+    public ClientExceptionPolicy(long minExceptionFrequency, int maxExceptionTimes) {
         this.minExceptionFrequency = minExceptionFrequency;
         this.maxExceptionTimes = maxExceptionTimes;
     }
 
-    public void hitException(String ip, int port){
+    /**
+     * 记录报错信息
+     * @param ip ip
+     * @param port  端口
+     */
+    private void recordException(String ip, int port){
         String key = getKey(ip, port);
         synchronized (key.intern()){
             ExceptionInfo exceptionInfo = null;
@@ -28,13 +33,21 @@ public class ReLoadBalancePolicy {
                 exceptionInfo = exceptionInfoMap.get(key);
             }else{
                 exceptionInfo = new ExceptionInfo();
+                exceptionInfoMap.put(key, exceptionInfo);
             }
             exceptionInfo.increase();
             exceptionInfo.accessTime();
         }
     }
 
+    /**
+     * 是否需要改变客户端(此服务的客户端已不可用)
+     * @param ip    ip
+     * @param port  端口
+     * @return
+     */
     public boolean needChangeClient(String ip, int port){
+        recordException(ip, port);
         String key = getKey(ip, port);
         boolean need = false;
         synchronized (key.intern()) {

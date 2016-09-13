@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Method;
 
 /**
- * 动态代理
+ * 动态代理的处理类
  * @author 谢俊权
  * @create 2016/5/6 17:42
  */
@@ -17,15 +17,15 @@ public class ClientHandler implements MethodInterceptor{
 
     private static final Logger logger  = LoggerFactory.getLogger(ClientHandler.class);
 
-    private ReLoadBalancePolicy accessPolicy;
+    private ClientExceptionPolicy clientExceptionPolicy;
     private Configure configure;
 
-    private ServerInfo serverInfo;
+    private ClientInfo clientInfo;
 
-    public ClientHandler(ServerInfo serverInfo, Configure configure) {
-        this.serverInfo = serverInfo;
+    public ClientHandler(ClientInfo clientInfo, Configure configure) {
+        this.clientInfo = clientInfo;
         this.configure = configure;
-        this.accessPolicy = new ReLoadBalancePolicy(configure.getMinExceptionFrequencyMs(), configure.getMaxExceptionTimes());
+        this.clientExceptionPolicy = new ClientExceptionPolicy(configure.getMinExceptionFrequencyMs(), configure.getMaxExceptionTimes());
     }
 
     @Override
@@ -38,10 +38,9 @@ public class ClientHandler implements MethodInterceptor{
 
             if(!(e.getCause() instanceof IgnoredException)){
 
-                if(!TelnetUtil.isConnect(serverInfo.getIp(), serverInfo.getPort(), configure.getTelnetTimeoutMs())){
-                    accessPolicy.hitException(serverInfo.getIp(), serverInfo.getPort());
-                    if(accessPolicy.needChangeClient(serverInfo.getIp(), serverInfo.getPort())){
-                        ClientProxyNotifier.getInstance().notifyServerUnavailable(serverInfo);
+                if(!TelnetUtil.isConnect(clientInfo.getIp(), clientInfo.getPort(), configure.getTelnetTimeoutMs())){
+                    if(clientExceptionPolicy.needChangeClient(clientInfo.getIp(), clientInfo.getPort())){
+                        ClientProxyNotifier.getInstance().notifyServerUnavailable(clientInfo);
                     }
                 }
             }

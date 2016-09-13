@@ -1,24 +1,39 @@
 package com.bj.proxy;
 
 /**
- * 服务器信息
+ * 客户端信息
  *
  * @author 谢俊权
  * @create 2016/5/6 10:22
  */
-public class ServerInfo {
+public class ClientInfo {
 
+    /**
+     * 服务ip
+     */
     private String ip;
 
+    /**
+     * 服务端口
+     */
     private int port;
 
+    /**
+     * 客户端权重
+     */
     private int weight;
 
+    /**
+     * 客户端实例
+     */
     private ClosableClient client;
 
+    /**
+     * 客户端构造信息
+     */
     private ClientConstructor clientConstructor;
 
-    public ServerInfo(String ip, int port, int weight, ClientConstructor clientConstructor) {
+    public ClientInfo(String ip, int port, int weight, ClientConstructor clientConstructor) {
         this.ip = ip;
         this.port = port;
         this.weight = weight;
@@ -51,10 +66,10 @@ public class ServerInfo {
 
     @Override
     public boolean equals(Object obj) {
-        ServerInfo serverInfo = (ServerInfo) obj;
-        return ip.equals(serverInfo.getIp())
-                && port == serverInfo.getPort()
-                && weight == serverInfo.getWeight();
+        ClientInfo clientInfo = (ClientInfo) obj;
+        return ip.equals(clientInfo.getIp())
+                && port == clientInfo.getPort()
+                && weight == clientInfo.getWeight();
     }
 
     @Override

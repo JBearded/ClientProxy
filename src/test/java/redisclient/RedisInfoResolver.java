@@ -1,8 +1,8 @@
 package redisclient;
 
 import com.bj.proxy.ClientConstructor;
-import com.bj.proxy.ServerInfo;
-import com.bj.proxy.ServerInfoResolver;
+import com.bj.proxy.ClientInfo;
+import com.bj.proxy.ClientInfoResolver;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
@@ -17,7 +17,7 @@ import java.util.List;
  * @author 谢俊权
  * @create 2016/9/2 16:08
  */
-public class RedisInfoResolver extends ServerInfoResolver{
+public class RedisInfoResolver extends ClientInfoResolver {
 
     private static final String REDIS = "redis";
 
@@ -35,9 +35,9 @@ public class RedisInfoResolver extends ServerInfoResolver{
     }
 
     @Override
-    public List<ServerInfo> get() {
+    public List<ClientInfo> get() {
         Element root = getRoot(configPath);
-        return getServerInfoList(root);
+        return getClientInfoList(root);
     }
 
     private Element getRoot(String configFileName) {
@@ -55,18 +55,18 @@ public class RedisInfoResolver extends ServerInfoResolver{
         return root;
     }
 
-    private List<ServerInfo> getServerInfoList(Element root){
+    private List<ClientInfo> getClientInfoList(Element root){
 
-        List<ServerInfo> list = new ArrayList<ServerInfo>();
+        List<ClientInfo> list = new ArrayList<ClientInfo>();
         List<Element> redisList = root.elements(REDIS);
         for (Element element : redisList) {
-            ServerInfo serverInfo = getServerInfo(element);
-            list.add(serverInfo);
+            ClientInfo clientInfo = getClientInfo(element);
+            list.add(clientInfo);
         }
         return list;
     }
 
-    private ServerInfo getServerInfo(Element element){
+    private ClientInfo getClientInfo(Element element){
 
         String host = element.element(HOST).getStringValue();
         int port = Integer.valueOf(element.element(PORT).getStringValue());
@@ -87,8 +87,8 @@ public class RedisInfoResolver extends ServerInfoResolver{
         );
 
 
-        ServerInfo serverInfo = new ServerInfo(host, port, weight, clientClientConstructor);
-        return serverInfo;
+        ClientInfo clientInfo = new ClientInfo(host, port, weight, clientClientConstructor);
+        return clientInfo;
     }
 
 }

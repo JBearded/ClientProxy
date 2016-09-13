@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
+ * 客户端类的构造信息
  * @author 谢俊权
  * @create 2016/9/2 15:04
  */

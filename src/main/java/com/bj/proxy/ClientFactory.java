@@ -6,6 +6,7 @@ import java.lang.reflect.Constructor;
 import java.util.List;
 
 /**
+ * 客户端的工厂
  * @author 谢俊权
  * @create 2016/5/6 17:46
  */
@@ -17,15 +18,15 @@ public class ClientFactory {
         this.configure = configure;
     }
 
-    public ClosableClient create(ServerInfo serverInfo){
+    public ClosableClient create(ClientInfo clientInfo){
 
-        ClientConstructor clientConstructor = serverInfo.getClientConstructor();
+        ClientConstructor clientConstructor = clientInfo.getClientConstructor();
         Class clientClazz = clientConstructor.getClientClass();
         List<Object> params = clientConstructor.getParameters();
 
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(clientClazz);
-        ClientHandler handler = new ClientHandler(serverInfo, configure);
+        ClientHandler handler = new ClientHandler(clientInfo, configure);
         enhancer.setCallback(handler);
 
         ClosableClient result = null;
