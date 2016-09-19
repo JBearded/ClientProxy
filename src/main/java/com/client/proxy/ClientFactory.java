@@ -40,11 +40,15 @@ public class ClientFactory {
         return result;
     }
 
+    /**
+     * 通过构造参数获取其对应的参数类型列表
+     * @param clientConstructor 客户端构造信息
+     * @return
+     */
     private Class[] getConstructorTypes(ClientConstructor clientConstructor){
         Class clientClazz = clientConstructor.getClientClass();
         Constructor[] constructors = clientClazz.getDeclaredConstructors();
         List<Object> params = clientConstructor.getParameters();
-
 
         for (Constructor constructor : constructors) {
             boolean isSame = true;
@@ -66,6 +70,12 @@ public class ClientFactory {
         return null;
     }
 
+    /**
+     * 判断对象值的类型是否和给出的类型一致
+     * @param type  类型
+     * @param value 对象值
+     * @return
+     */
     private boolean isSameType(Class<?> type, Object value){
         Class<?> clazz = value.getClass();
         if(!type.isPrimitive()){
@@ -73,15 +83,14 @@ public class ClientFactory {
         }else{
             Class<?> warpper =
                     (type.equals(byte.class)) ? Byte.class :
-                            (type.equals(boolean.class)) ? Boolean.class :
-                                    (type.equals(char.class)) ? Character.class :
-                                            (type.equals(short.class)) ? Short.class :
-                                                    (type.equals(int.class)) ? Integer.class :
-                                                            (type.equals(long.class)) ? Long.class :
-                                                                    (type.equals(float.class)) ? Float.class :
-                                                                            (type.equals(double.class)) ? Double.class :
-                                                                                    Object.class;
-
+                    (type.equals(boolean.class)) ? Boolean.class :
+                    (type.equals(char.class)) ? Character.class :
+                    (type.equals(short.class)) ? Short.class :
+                    (type.equals(int.class)) ? Integer.class :
+                    (type.equals(long.class)) ? Long.class :
+                    (type.equals(float.class)) ? Float.class :
+                    (type.equals(double.class)) ? Double.class :
+                    Object.class;
 
             return warpper.equals(clazz);
         }
