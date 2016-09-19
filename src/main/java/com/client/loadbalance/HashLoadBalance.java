@@ -1,4 +1,4 @@
-package com.bj.loadbalance;
+package com.client.loadbalance;
 
 /**
  * 哈希调度

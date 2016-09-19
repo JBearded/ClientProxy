@@ -1,4 +1,4 @@
-package com.bj.proxy;
+package com.client.proxy;
 
 /**
  * 可关闭的客户端接口

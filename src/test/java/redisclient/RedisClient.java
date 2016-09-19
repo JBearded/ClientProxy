@@ -1,7 +1,7 @@
 package redisclient;
 
-import com.bj.exception.IgnoredException;
-import com.bj.proxy.ClosableClient;
+import com.client.exception.IgnoredException;
+import com.client.proxy.ClosableClient;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;

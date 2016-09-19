@@ -1,6 +1,6 @@
-package com.bj.proxy;
+package com.client.proxy;
 
-import com.bj.loadbalance.LoadBalanceStrategy;
+import com.client.loadbalance.LoadBalanceStrategy;
 
 /**
  * 服务代理的配置信息

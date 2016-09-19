@@ -1,6 +1,6 @@
-package com.bj.proxy;
+package com.client.proxy;
 
-import com.bj.exception.IgnoredException;
+import com.client.exception.IgnoredException;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 import org.slf4j.Logger;

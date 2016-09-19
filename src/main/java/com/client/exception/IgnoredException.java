@@ -1,4 +1,4 @@
-package com.bj.exception;
+package com.client.exception;
 
 /**
  * 可忽略的报错, 客户端代理不处理此报错

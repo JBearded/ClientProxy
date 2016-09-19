@@ -1,7 +1,7 @@
 package mongoclient;
 
-import com.bj.exception.IgnoredException;
-import com.bj.proxy.ClosableClient;
+import com.client.exception.IgnoredException;
+import com.client.proxy.ClosableClient;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;

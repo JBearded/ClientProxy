@@ -1,4 +1,4 @@
-package com.bj.proxy;
+package com.client.proxy;
 
 import org.apache.commons.net.telnet.TelnetClient;
 import org.slf4j.Logger;

@@ -1,6 +1,6 @@
-import com.bj.loadbalance.LoadBalanceStrategy;
-import com.bj.proxy.ClientProxy;
-import com.bj.proxy.Configure;
+import com.client.loadbalance.LoadBalanceStrategy;
+import com.client.proxy.ClientProxy;
+import com.client.proxy.Configure;
 import redisclient.RedisClient;
 import redisclient.RedisInfoResolver;
 

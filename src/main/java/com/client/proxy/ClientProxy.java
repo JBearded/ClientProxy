@@ -1,6 +1,6 @@
-package com.bj.proxy;
+package com.client.proxy;
 
-import com.bj.loadbalance.*;
+import com.client.loadbalance.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

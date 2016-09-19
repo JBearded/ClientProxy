@@ -1,4 +1,4 @@
-package com.bj.proxy;
+package com.client.proxy;
 
 /**
  * 客户端信息

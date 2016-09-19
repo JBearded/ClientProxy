@@ -1,8 +1,8 @@
 package mongoclient;
 
-import com.bj.proxy.ClientConstructor;
-import com.bj.proxy.ClientInfo;
-import com.bj.proxy.ClientInfoResolver;
+import com.client.proxy.ClientConstructor;
+import com.client.proxy.ClientInfo;
+import com.client.proxy.ClientInfoResolver;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;

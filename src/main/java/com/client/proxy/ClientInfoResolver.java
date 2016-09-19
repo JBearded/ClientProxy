@@ -1,4 +1,4 @@
-package com.bj.proxy;
+package com.client.proxy;
 
 import java.util.List;
 

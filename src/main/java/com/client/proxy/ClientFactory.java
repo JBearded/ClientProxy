@@ -1,4 +1,4 @@
-package com.bj.proxy;
+package com.client.proxy;
 
 import net.sf.cglib.proxy.Enhancer;
 
