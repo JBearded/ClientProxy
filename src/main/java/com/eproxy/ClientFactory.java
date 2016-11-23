@@ -1,4 +1,4 @@
-package com.client.proxy;
+package com.eproxy;
 
 import net.sf.cglib.proxy.Enhancer;
 
@@ -18,15 +18,15 @@ public class ClientFactory {
         this.configure = configure;
     }
 
-    public ClosableClient create(ClientInfo clientInfo){
+    public ClosableClient create(ServerInfo serverInfo){
 
-        ClientConstructor clientConstructor = clientInfo.getClientConstructor();
+        ClientConstructor clientConstructor = serverInfo.getClientConstructor();
         Class clientClazz = clientConstructor.getClientClass();
         List<Object> params = clientConstructor.getParameters();
 
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(clientClazz);
-        ClientHandler handler = new ClientHandler(clientInfo, configure);
+        ClientHandler handler = new ClientHandler(serverInfo, configure);
         enhancer.setCallback(handler);
 
         ClosableClient result = null;

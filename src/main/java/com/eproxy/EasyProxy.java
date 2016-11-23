@@ -1,6 +1,7 @@
-package com.client.proxy;
+package com.eproxy;
 
-import com.client.loadbalance.*;
+import com.eproxy.loadbalance.*;
+import com.eproxy.utils.TelnetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,9 +15,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @author 谢俊权
  * @create 2016/5/6 10:26
  */
-public class ClientProxy<T>{
+public class EasyProxy<T>{
 
-    private static final Logger logger = LoggerFactory.getLogger(ClientProxy.class);
+    private static final Logger logger = LoggerFactory.getLogger(EasyProxy.class);
 
     /**
      * 检查服务是否可用的定时器
@@ -54,19 +55,19 @@ public class ClientProxy<T>{
     private ClientFactory clientFactory;
 
 
-    public ClientProxy(ClientInfoResolver resolver) {
+    public EasyProxy(ClientInfoResolver resolver) {
         this(resolver.get(), new Configure.Builder().build());
     }
 
-    public ClientProxy(List<ClientInfo> clientInfoList) {
+    public EasyProxy(List<ClientInfo> clientInfoList) {
         this(clientInfoList, new Configure.Builder().build());
     }
 
-    public ClientProxy(ClientInfoResolver resolver, Configure configure) {
+    public EasyProxy(ClientInfoResolver resolver, Configure configure) {
         this(resolver.get(), configure);
     }
 
-    public ClientProxy(List<ClientInfo> clientInfoList, Configure configure) {
+    public EasyProxy(List<ClientInfo> clientInfoList, Configure configure) {
         this.init(clientInfoList, configure);
     }
 

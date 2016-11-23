@@ -1,4 +1,4 @@
-package com.client.proxy;
+package com.eproxy;
 
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -1,4 +1,4 @@
-package com.client.proxy;
+package com.eproxy;
 
 /**
  * 客户端信息
@@ -6,7 +6,7 @@ package com.client.proxy;
  * @author 谢俊权
  * @create 2016/5/6 10:22
  */
-public class ClientInfo {
+public class ServerInfo {
 
     /**
      * 服务ip
@@ -33,7 +33,7 @@ public class ClientInfo {
      */
     private ClientConstructor clientConstructor;
 
-    public ClientInfo(String ip, int port, int weight, ClientConstructor clientConstructor) {
+    public ServerInfo(String ip, int port, int weight, ClientConstructor clientConstructor) {
         this.ip = ip;
         this.port = port;
         this.weight = weight;
@@ -66,10 +66,10 @@ public class ClientInfo {
 
     @Override
     public boolean equals(Object obj) {
-        ClientInfo clientInfo = (ClientInfo) obj;
-        return ip.equals(clientInfo.getIp())
-                && port == clientInfo.getPort()
-                && weight == clientInfo.getWeight();
+        ServerInfo serverInfo = (ServerInfo) obj;
+        return ip.equals(serverInfo.getIp())
+                && port == serverInfo.getPort()
+                && weight == serverInfo.getWeight();
     }
 
     @Override

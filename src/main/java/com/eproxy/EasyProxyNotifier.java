@@ -1,4 +1,4 @@
-package com.client.proxy;
+package com.eproxy;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -8,25 +8,25 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @author 谢俊权
  * @create 2016/5/11 17:57
  */
-public class ClientProxyNotifier {
+public class EasyProxyNotifier {
 
-    private List<ClientProxy> clientProxies = new CopyOnWriteArrayList<ClientProxy>();
+    private List<EasyProxy> clientProxies = new CopyOnWriteArrayList<EasyProxy>();
 
     private static class ServerProxyNotifierHolder{
-        public static ClientProxyNotifier notifier = new ClientProxyNotifier();
+        public static EasyProxyNotifier notifier = new EasyProxyNotifier();
     }
-    private ClientProxyNotifier(){}
+    private EasyProxyNotifier(){}
 
-    public static ClientProxyNotifier getInstance(){
+    public static EasyProxyNotifier getInstance(){
         return ServerProxyNotifierHolder.notifier;
     }
 
     /**
      * 注册需要被通知的客户端代理
-     * @param clientProxy
+     * @param easyProxy
      */
-    public void subClientProxy(ClientProxy clientProxy){
-        this.clientProxies.add(clientProxy);
+    public void subClientProxy(EasyProxy easyProxy){
+        this.clientProxies.add(easyProxy);
     }
 
     /**
@@ -34,8 +34,8 @@ public class ClientProxyNotifier {
      * @param clientInfo
      */
     public void notifyServerAvailable(ClientInfo clientInfo){
-        for(ClientProxy clientProxy : clientProxies){
-            clientProxy.toAvailable(clientInfo);
+        for(EasyProxy easyProxy : clientProxies){
+            easyProxy.toAvailable(clientInfo);
         }
     }
 
@@ -44,8 +44,8 @@ public class ClientProxyNotifier {
      * @param clientInfo
      */
     public void notifyServerUnavailable(ClientInfo clientInfo){
-        for(ClientProxy clientProxy : clientProxies){
-            clientProxy.toUnavailable(clientInfo);
+        for(EasyProxy easyProxy : clientProxies){
+            easyProxy.toUnavailable(clientInfo);
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.client.proxy;
+package com.eproxy.exception;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -7,15 +7,15 @@ import java.util.concurrent.ConcurrentMap;
  * @author 谢俊权
  * @create 2016/8/31 17:57
  */
-public class ClientExceptionPolicy {
+public class ExceptionPolicy {
 
     private long minExceptionFrequency = 1000 * 2;
 
     private int maxExceptionTimes = 20;
 
-    private ConcurrentMap<String, ExceptionInfo> exceptionInfoMap = new ConcurrentHashMap<String, ExceptionInfo>();
+    private ConcurrentMap<String, ExceptionInfo> exceptionInfoMap = new ConcurrentHashMap<>();
 
-    public ClientExceptionPolicy(long minExceptionFrequency, int maxExceptionTimes) {
+    public ExceptionPolicy(long minExceptionFrequency, int maxExceptionTimes) {
         this.minExceptionFrequency = minExceptionFrequency;
         this.maxExceptionTimes = maxExceptionTimes;
     }
@@ -28,15 +28,13 @@ public class ClientExceptionPolicy {
     private void recordException(String ip, int port){
         String key = getKey(ip, port);
         synchronized (key.intern()){
-            ExceptionInfo exceptionInfo = null;
-            if(exceptionInfoMap.containsKey(key)){
-                exceptionInfo = exceptionInfoMap.get(key);
-            }else{
+            ExceptionInfo exceptionInfo = exceptionInfoMap.get(key);
+            if(exceptionInfo == null){
                 exceptionInfo = new ExceptionInfo();
                 exceptionInfoMap.put(key, exceptionInfo);
             }
-            exceptionInfo.increase();
-            exceptionInfo.accessTime();
+            exceptionInfo.increaseTimes();
+            exceptionInfo.updateAccessTime();
         }
     }
 
@@ -51,9 +49,7 @@ public class ClientExceptionPolicy {
         String key = getKey(ip, port);
         boolean need = false;
         synchronized (key.intern()) {
-            if(!exceptionInfoMap.containsKey(key)){
-                need = true;
-            }else{
+            if(exceptionInfoMap.containsKey(key)){
                 ExceptionInfo exceptionInfo = exceptionInfoMap.get(key);
                 long fistTime = exceptionInfo.firstExceptionTime;
                 long lastTime = exceptionInfo.lastExceptionTime;
@@ -61,10 +57,8 @@ public class ClientExceptionPolicy {
                 long frequency = (lastTime - fistTime) / times;
                 if(frequency < minExceptionFrequency || times >= maxExceptionTimes){
                     need = true;
+                    exceptionInfoMap.remove(key);
                 }
-            }
-            if(need){
-                exceptionInfoMap.remove(key);
             }
         }
         return need;
@@ -85,11 +79,11 @@ public class ClientExceptionPolicy {
             this.firstExceptionTime = System.currentTimeMillis();
         }
 
-        private void increase(){
+        private void increaseTimes(){
             exceptionTimes++;
         }
 
-        private void accessTime(){
+        private void updateAccessTime(){
             lastExceptionTime = System.currentTimeMillis();
         }
 

@@ -1,7 +1,7 @@
 package redisclient;
 
-import com.client.exception.IgnoredException;
-import com.client.proxy.ClosableClient;
+import com.eproxy.exception.IgnoredException;
+import com.eproxy.ClosableClient;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -29,7 +29,7 @@ public class RedisClient implements ClosableClient{
 
     }
 
-    public String setex(String key, String value, int seconds) {
+    public String setex(String key, int seconds, String value) {
         Jedis jedis = jedisPool.getResource();
         try{
             return jedis.setex(key, seconds, value);

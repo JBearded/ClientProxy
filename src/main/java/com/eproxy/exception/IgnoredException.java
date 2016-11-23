@@ -1,4 +1,4 @@
-package com.client.exception;
+package com.eproxy.exception;
 
 /**
  * 可忽略的报错, 客户端代理不处理此报错

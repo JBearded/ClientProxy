@@ -1,4 +1,4 @@
-package com.client.loadbalance;
+package com.eproxy.loadbalance;
 
 /**
  * @author 谢俊权

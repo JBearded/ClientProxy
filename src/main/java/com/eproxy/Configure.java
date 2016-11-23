@@ -1,6 +1,8 @@
-package com.client.proxy;
+package com.eproxy;
 
-import com.client.loadbalance.LoadBalanceStrategy;
+import com.eproxy.exception.DefaultExceptionHandler;
+import com.eproxy.exception.ExceptionHandler;
+import com.eproxy.loadbalance.LoadBalanceStrategy;
 
 /**
  * 服务代理的配置信息
@@ -35,12 +37,22 @@ public class Configure {
      */
     private LoadBalanceStrategy loadBalanceStrategy = LoadBalanceStrategy.HASH;
 
+    /**
+     * 客户端方法调用报错的处理器
+     */
+    private ExceptionHandler exceptionHandler;
+
     public Configure(Builder builder) {
         this.checkServerAvailableIntervalMs = builder.checkServerAvailableIntervalMs;
         this.telnetTimeoutMs = builder.telnetTimeoutMs;
         this.minExceptionFrequencyMs = builder.minExceptionFrequencyMs;
         this.maxExceptionTimes = builder.maxExceptionTimes;
         this.loadBalanceStrategy = builder.loadBalanceStrategy;
+        this.exceptionHandler = builder.exceptionHandler;
+        if(this.exceptionHandler == null){
+           this.exceptionHandler = new DefaultExceptionHandler(this);
+        }
+
     }
 
     public long getCheckServerAvailableIntervalMs() {
@@ -63,6 +75,10 @@ public class Configure {
         return loadBalanceStrategy;
     }
 
+    public ExceptionHandler getExceptionHandler() {
+        return exceptionHandler;
+    }
+
     public static class Builder{
 
         private long checkServerAvailableIntervalMs = 1000 * 60 * 10;
@@ -74,6 +90,8 @@ public class Configure {
         private int maxExceptionTimes = 10;
 
         private LoadBalanceStrategy loadBalanceStrategy = LoadBalanceStrategy.HASH;
+
+        private ExceptionHandler exceptionHandler;
 
         /**
          * 设置定时检查服务是否可用的间隔时间
@@ -122,6 +140,17 @@ public class Configure {
          */
         public Builder loadBalanceStrategy(LoadBalanceStrategy loadBalanceStrategy){
             this.loadBalanceStrategy = loadBalanceStrategy;
+            return this;
+        }
+
+
+        /**
+         * 调用客户端方法报错之后的处理器
+         * @param exceptionHandler
+         * @return
+         */
+        public Builder exceptionHandler(ExceptionHandler exceptionHandler){
+            this.exceptionHandler = exceptionHandler;
             return this;
         }
 

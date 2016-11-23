@@ -1,4 +1,4 @@
-package com.client.proxy;
+package com.eproxy;
 
 import java.util.List;
 
@@ -7,13 +7,13 @@ import java.util.List;
  * @author 谢俊权
  * @create 2016/9/2 15:59
  */
-public abstract class ClientInfoResolver {
+public abstract class ServerInfoResolver {
 
     protected String configPath;
 
-    public ClientInfoResolver(String configPath) {
+    public ServerInfoResolver(String configPath) {
         this.configPath = configPath;
     }
 
-    public abstract List<ClientInfo> get();
+    public abstract List<ServerInfo> get();
 }

@@ -1,4 +1,4 @@
-package com.client.loadbalance;
+package com.eproxy.loadbalance;
 
 /**
  * 加权轮询调度

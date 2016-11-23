@@ -1,4 +1,4 @@
-package com.client.proxy;
+package com.eproxy;
 
 /**
  * 可关闭的客户端接口
