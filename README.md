@@ -1,4 +1,4 @@
-# ClientProxy
+# EasyProxy
 
 ## 简介
 此项目用于多个服务的客户端代理，达到高可用的作用
