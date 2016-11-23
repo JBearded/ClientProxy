@@ -32,12 +32,12 @@ public class EasyProxy<T>{
     /**
      * 可用的服务客户端信息列表
      */
-    private CopyOnWriteArrayList<ClientInfo> availableServers = new CopyOnWriteArrayList<ClientInfo>();
+    private CopyOnWriteArrayList<ServerInfo> availableServers = new CopyOnWriteArrayList<ServerInfo>();
 
     /**
      * 不可用的服务客户端信息列表
      */
-    private CopyOnWriteArrayList<ClientInfo> unavailableServers = new CopyOnWriteArrayList<ClientInfo>();
+    private CopyOnWriteArrayList<ServerInfo> unavailableServers = new CopyOnWriteArrayList<ServerInfo>();
 
     /**
      * 负载均衡调度
@@ -55,35 +55,35 @@ public class EasyProxy<T>{
     private ClientFactory clientFactory;
 
 
-    public EasyProxy(ClientInfoResolver resolver) {
+    public EasyProxy(ServerInfoResolver resolver) {
         this(resolver.get(), new Configure.Builder().build());
     }
 
-    public EasyProxy(List<ClientInfo> clientInfoList) {
-        this(clientInfoList, new Configure.Builder().build());
+    public EasyProxy(List<ServerInfo> serverInfoList) {
+        this(serverInfoList, new Configure.Builder().build());
     }
 
-    public EasyProxy(ClientInfoResolver resolver, Configure configure) {
+    public EasyProxy(ServerInfoResolver resolver, Configure configure) {
         this(resolver.get(), configure);
     }
 
-    public EasyProxy(List<ClientInfo> clientInfoList, Configure configure) {
-        this.init(clientInfoList, configure);
+    public EasyProxy(List<ServerInfo> serverInfoList, Configure configure) {
+        this.init(serverInfoList, configure);
     }
 
     /**
      * 初始化
-     * @param clientInfoList 服务客户端信息列表
+     * @param serverInfoList 服务客户端信息列表
      * @param configure 配置信息
      */
-    protected void init(List<ClientInfo> clientInfoList, Configure configure){
+    protected void init(List<ServerInfo> serverInfoList, Configure configure){
         this.configure = configure;
         this.strategy = configure.getLoadBalanceStrategy();
         this.clientFactory = new ClientFactory(configure);
-        this.initClientInfo(clientInfoList);
+        this.initClientInfo(serverInfoList);
         this.initLoadBalance();
         this.scheduleCheckServerAvailable();
-        ClientProxyNotifier.getInstance().subClientProxy(this);
+        EasyProxyNotifier.getInstance().subClientProxy(this);
     }
 
     /**
@@ -98,8 +98,8 @@ public class EasyProxy<T>{
             case WRR:
                 int[] weights = new int[size];
                 int index = 0;
-                for(ClientInfo clientInfo : availableServers){
-                    weights[index] = clientInfo.getWeight();
+                for(ServerInfo serverInfo : availableServers){
+                    weights[index] = serverInfo.getWeight();
                     index++;
                 }
                 this.loadBalance = new WRRLoadBalance(weights);
@@ -112,11 +112,11 @@ public class EasyProxy<T>{
 
     /**
      * 初始化服务信息
-     * @param clientInfoList 服务信息列表
+     * @param serverInfoList 服务信息列表
      */
-    protected void initClientInfo(List<ClientInfo> clientInfoList) {
-        if(clientInfoList != null && !clientInfoList.isEmpty()){
-            this.availableServers.addAll(clientInfoList);
+    protected void initClientInfo(List<ServerInfo> serverInfoList) {
+        if(serverInfoList != null && !serverInfoList.isEmpty()){
+            this.availableServers.addAll(serverInfoList);
         }
     }
 
@@ -131,9 +131,9 @@ public class EasyProxy<T>{
             @Override
             public void run() {
                 long timeoutMS = configure.getTelnetTimeoutMs();
-                for (ClientInfo clientInfo : unavailableServers) {
-                    if(TelnetUtil.isConnect(clientInfo.getIp(), clientInfo.getPort(), timeoutMS)){
-                        ClientProxyNotifier.getInstance().notifyServerAvailable(clientInfo);
+                for (ServerInfo serverInfo : unavailableServers) {
+                    if(TelnetUtil.isConnect(serverInfo.getIp(), serverInfo.getPort(), timeoutMS)){
+                        EasyProxyNotifier.getInstance().notifyServerAvailable(serverInfo);
                     }
                 }
             }
@@ -169,57 +169,57 @@ public class EasyProxy<T>{
             logger.error("available server list is empty");
             return null;
         }
-        ClientInfo clientInfo = availableServers.get(index);
-        ClosableClient client = clientInfo.getClient();
+        ServerInfo serverInfo = availableServers.get(index);
+        ClosableClient client = serverInfo.getClient();
         if(client == null){
-            client = create(clientInfo);
+            client = create(serverInfo);
         }
         return client;
     }
 
     /**
      * 根据服务信息创建一个新的客户端
-     * @param clientInfo 服务端信息
+     * @param serverInfo 服务端信息
      * @return
      */
-    protected ClosableClient create(ClientInfo clientInfo){
-        ClosableClient client = clientFactory.create(clientInfo);
-        clientInfo.setClient(client);
+    protected ClosableClient create(ServerInfo serverInfo){
+        ClosableClient client = clientFactory.create(serverInfo);
+        serverInfo.setClient(client);
         return client;
     }
 
     /**
      * 在设置服务不可用后, 销毁客户端的连接
-     * @param clientInfo 服务端信息
+     * @param serverInfo 服务端信息
      */
-    protected void destroy(ClientInfo clientInfo){
-        ClosableClient client = clientInfo.getClient();
+    protected void destroy(ServerInfo serverInfo){
+        ClosableClient client = serverInfo.getClient();
         client.close();
-        clientInfo.setClient(null);
+        serverInfo.setClient(null);
     }
 
     /**
      * 恢复服务为可用
-     * @param clientInfo 服务客户端信息
+     * @param serverInfo 服务客户端信息
      */
-    protected void toAvailable(ClientInfo clientInfo) {
-        if(this.unavailableServers.contains(clientInfo)){
-            create(clientInfo);
-            this.availableServers.add(clientInfo);
-            this.unavailableServers.remove(clientInfo);
+    protected void toAvailable(ServerInfo serverInfo) {
+        if(this.unavailableServers.contains(serverInfo)){
+            create(serverInfo);
+            this.availableServers.add(serverInfo);
+            this.unavailableServers.remove(serverInfo);
             this.initLoadBalance();
         }
     }
 
     /**
      * 设置服务为不可用
-     * @param clientInfo 服务客户端信息
+     * @param serverInfo 服务客户端信息
      */
-    protected void toUnavailable(ClientInfo clientInfo) {
-        if(this.availableServers.contains(clientInfo)) {
-            this.destroy(clientInfo);
-            this.availableServers.remove(clientInfo);
-            this.unavailableServers.add(clientInfo);
+    protected void toUnavailable(ServerInfo serverInfo) {
+        if(this.availableServers.contains(serverInfo)) {
+            this.destroy(serverInfo);
+            this.availableServers.remove(serverInfo);
+            this.unavailableServers.add(serverInfo);
             this.initLoadBalance();
         }
     }

@@ -31,21 +31,21 @@ public class EasyProxyNotifier {
 
     /**
      * 通知客户端代理某个服务不可用
-     * @param clientInfo
+     * @param serverInfo
      */
-    public void notifyServerAvailable(ClientInfo clientInfo){
+    public void notifyServerAvailable(ServerInfo serverInfo){
         for(EasyProxy easyProxy : clientProxies){
-            easyProxy.toAvailable(clientInfo);
+            easyProxy.toAvailable(serverInfo);
         }
     }
 
     /**
      * 通知客户端代理某个服务不可用
-     * @param clientInfo
+     * @param serverInfo
      */
-    public void notifyServerUnavailable(ClientInfo clientInfo){
+    public void notifyServerUnavailable(ServerInfo serverInfo){
         for(EasyProxy easyProxy : clientProxies){
-            easyProxy.toUnavailable(clientInfo);
+            easyProxy.toUnavailable(serverInfo);
         }
     }
 }
