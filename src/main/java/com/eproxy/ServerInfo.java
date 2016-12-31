@@ -1,5 +1,10 @@
 package com.eproxy;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+
 /**
  * 客户端信息
  *
@@ -21,23 +26,23 @@ public class ServerInfo {
     /**
      * 客户端权重
      */
-    private int weight;
+    private int weight = 1;
 
     /**
      * 客户端实例
      */
     private ClosableClient client;
 
-    /**
-     * 客户端构造信息
-     */
-    private ClientConstructor clientConstructor;
+    private Map<String, Object> extendInfoMap = new HashMap<>();
 
-    public ServerInfo(String ip, int port, int weight, ClientConstructor clientConstructor) {
+    public ServerInfo(String ip, int port){
         this.ip = ip;
         this.port = port;
+    }
+
+    public ServerInfo(String ip, int port, int weight) {
+        this(ip, port);
         this.weight = weight;
-        this.clientConstructor = clientConstructor;
     }
 
     public String getIp() {
@@ -60,16 +65,19 @@ public class ServerInfo {
         this.client = client;
     }
 
-    public ClientConstructor getClientConstructor() {
-        return clientConstructor;
+    public void setExtendInfo(String key, Object value){
+        this.extendInfoMap.put(key, value);
     }
+
+    public Map<String, Object> getExtendInfoMap(){
+        return Collections.unmodifiableMap(this.extendInfoMap);
+    }
+
 
     @Override
     public boolean equals(Object obj) {
         ServerInfo serverInfo = (ServerInfo) obj;
-        return ip.equals(serverInfo.getIp())
-                && port == serverInfo.getPort()
-                && weight == serverInfo.getWeight();
+        return ip.equals(serverInfo.getIp()) && port == serverInfo.getPort();
     }
 
     @Override
@@ -77,7 +85,6 @@ public class ServerInfo {
         int result = 17;
         result = 37 * result + ip.hashCode();
         result = 37 * result + port;
-        result = 37 * result + weight;
         return result;
     }
 }

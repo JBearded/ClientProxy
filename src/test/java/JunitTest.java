@@ -1,7 +1,10 @@
 import com.eproxy.Configure;
+import com.eproxy.exception.DefaultExceptionHandler;
+import com.eproxy.exception.DefaultSwitchPolicy;
 import com.eproxy.loadbalance.LoadBalanceStrategy;
 import org.junit.Test;
-import redisclient.RedisProxyService;
+import redisclient.RedisClient;
+import redisclient.RedisProxy;
 
 /**
  * @author 谢俊权
@@ -16,15 +19,15 @@ public class JunitTest {
         Configure configure = new Configure.Builder()
                 .checkServerAvailableIntervalMs(1000 * 10)
                 .loadBalanceStrategy(LoadBalanceStrategy.WRR)
-                .maxExceptionTimes(10)
-                .minExceptionFrequencyMs(1000 * 2)
-                .telnetTimeoutMs(1000 * 5)
+                .exceptionHandler(new DefaultExceptionHandler())
+                .switchPolicy(new DefaultSwitchPolicy(1, 2))
                 .build();
 
-        RedisProxyService proxyService = new RedisProxyService("redis.xml", configure);
+        RedisProxy redisProxy = new RedisProxy("redis.xml", configure);
         for (int i = 0; i < 100; i++) {
             Thread.sleep(1000);
-            proxyService.setex("hello", "world" + i, 60);
+            RedisClient client = redisProxy.getClient();
+            client.setex("hello", 60, "world" + i);
         }
     }
 }

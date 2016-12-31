@@ -76,18 +76,12 @@ public class RedisInfoResolver extends ServerInfoResolver {
         int timeout = Integer.valueOf(element.element(TIMEOUT).getStringValue());
         int weight = Integer.valueOf(element.element(WEIGHT).getStringValue());
 
-        JedisPoolConfig config = new JedisPoolConfig();
-        config.setMaxTotal(maxActive);
-        config.setMaxIdle(maxIdle);
-        config.setMinIdle(minIdle);
-        config.setMaxWaitMillis(timeout);
-        ClientConstructor clientClientConstructor = new ClientConstructor(
-                RedisClient.class,
-                config, host, port, timeout
-        );
-
-
-        ServerInfo serverInfo = new ServerInfo(host, port, weight, clientClientConstructor);
+        ServerInfo serverInfo = new ServerInfo(host, port, weight);
+        serverInfo.setExtendInfo(MAXACTIVE, maxActive);
+        serverInfo.setExtendInfo(MAXIDLE, maxIdle);
+        serverInfo.setExtendInfo(MINIDLE, minIdle);
+        serverInfo.setExtendInfo(MAXACTIVE, maxActive);
+        serverInfo.setExtendInfo(TIMEOUT, timeout);
         return serverInfo;
     }
 

@@ -1,7 +1,9 @@
 package com.eproxy;
 
 import com.eproxy.exception.ExceptionHandler;
+import com.eproxy.exception.IgnoredException;
 import com.eproxy.exception.MethodExceptionInfo;
+import com.eproxy.utils.TelnetUtil;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 import org.slf4j.Logger;
@@ -14,14 +16,16 @@ import java.lang.reflect.Method;
  * @author 谢俊权
  * @create 2016/5/6 17:42
  */
-public class ClientHandler implements MethodInterceptor{
+public class ClientInterceptor implements MethodInterceptor{
 
-    private static final Logger logger  = LoggerFactory.getLogger(ClientHandler.class);
+    private static final Logger logger  = LoggerFactory.getLogger(ClientInterceptor.class);
 
+    private ClosableClient client;
     private Configure configure;
     private ServerInfo serverInfo;
 
-    public ClientHandler(ServerInfo serverInfo, Configure configure) {
+    public ClientInterceptor(ClosableClient client, ServerInfo serverInfo, Configure configure) {
+        this.client = client;
         this.serverInfo = serverInfo;
         this.configure = configure;
     }
@@ -31,8 +35,17 @@ public class ClientHandler implements MethodInterceptor{
 
         Object result = null;
         try{
-            result = methodProxy.invokeSuper(object, args);
+            result = method.invoke(client, args);
         }catch (Throwable e){
+
+            if(!(e.getCause() instanceof IgnoredException)){
+                if(!TelnetUtil.isConnect(serverInfo.getIp(), serverInfo.getPort(), configure.getTelnetTimeoutMs())){
+//                    configure.get
+//                    if(policy.needChangeClient(serverInfo.getIp(), serverInfo.getPort())){
+//                        EasyProxyNotifier.getInstance().notifyServerUnavailable(serverInfo);
+//                    }
+                }
+            }
             MethodExceptionInfo exceptionInfo = new MethodExceptionInfo(e, serverInfo, object, method, args);
             ExceptionHandler handler = configure.getExceptionHandler();
             handler.handle(exceptionInfo);

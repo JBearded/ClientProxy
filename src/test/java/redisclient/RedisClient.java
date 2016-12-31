@@ -14,10 +14,13 @@ public class RedisClient implements ClosableClient{
 
     private JedisPool jedisPool;
 
+    public RedisClient(){
+
+    }
+
     public RedisClient(JedisPoolConfig config, String ip, int port, int timeout) {
         this.jedisPool = new JedisPool(config, ip, port, timeout);
     }
-
 
     public String set(String key, String value) {
         Jedis jedis = jedisPool.getResource();

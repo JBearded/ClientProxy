@@ -1,7 +1,9 @@
 package com.eproxy;
 
 import com.eproxy.exception.DefaultExceptionHandler;
+import com.eproxy.exception.DefaultSwitchPolicy;
 import com.eproxy.exception.ExceptionHandler;
+import com.eproxy.exception.SwitchPolicy;
 import com.eproxy.loadbalance.LoadBalanceStrategy;
 
 /**
@@ -18,19 +20,14 @@ public class Configure {
     private long checkServerAvailableIntervalMs = 1000 * 60 * 10;
 
     /**
-     * 检查服务是否可用的timeout时间
-     */
-    private long telnetTimeoutMs = 1000 * 5;
-
-    /**
      * 客户端调用报错间的平均最小时间, 如果小于这个时间则设置此客户端不可用
      */
-    private long minExceptionFrequencyMs = 1000 * 2;
+    private int minExceptionFrequency = 1;
 
     /**
      * 客户端调用报错的最大次数, 如果大于这个次数则设置此客户端不可用
      */
-    private int maxExceptionTimes = 10;
+    private int maxExceptionTimes = 2;
 
     /**
      * 负载均衡的策略
@@ -42,33 +39,25 @@ public class Configure {
      */
     private ExceptionHandler exceptionHandler;
 
+    private SwitchPolicy switchPolicy;
+
+
     public Configure(Builder builder) {
         this.checkServerAvailableIntervalMs = builder.checkServerAvailableIntervalMs;
-        this.telnetTimeoutMs = builder.telnetTimeoutMs;
-        this.minExceptionFrequencyMs = builder.minExceptionFrequencyMs;
-        this.maxExceptionTimes = builder.maxExceptionTimes;
         this.loadBalanceStrategy = builder.loadBalanceStrategy;
         this.exceptionHandler = builder.exceptionHandler;
+        this.switchPolicy = builder.switchPolicy;
         if(this.exceptionHandler == null){
-           this.exceptionHandler = new DefaultExceptionHandler(this);
+           this.exceptionHandler = new DefaultExceptionHandler();
+        }
+        if(this.switchPolicy == null){
+            this.switchPolicy = new DefaultSwitchPolicy(minExceptionFrequency, maxExceptionTimes);
         }
 
     }
 
     public long getCheckServerAvailableIntervalMs() {
         return checkServerAvailableIntervalMs;
-    }
-
-    public long getTelnetTimeoutMs() {
-        return telnetTimeoutMs;
-    }
-
-    public long getMinExceptionFrequencyMs() {
-        return minExceptionFrequencyMs;
-    }
-
-    public int getMaxExceptionTimes() {
-        return maxExceptionTimes;
     }
 
     public LoadBalanceStrategy getLoadBalanceStrategy() {
@@ -83,15 +72,11 @@ public class Configure {
 
         private long checkServerAvailableIntervalMs = 1000 * 60 * 10;
 
-        private long telnetTimeoutMs = 1000 * 5;
-
-        private long minExceptionFrequencyMs = 1000 * 2;
-
-        private int maxExceptionTimes = 10;
-
         private LoadBalanceStrategy loadBalanceStrategy = LoadBalanceStrategy.HASH;
 
         private ExceptionHandler exceptionHandler;
+
+        private SwitchPolicy switchPolicy;
 
         /**
          * 设置定时检查服务是否可用的间隔时间
@@ -100,36 +85,6 @@ public class Configure {
          */
         public Builder checkServerAvailableIntervalMs(long checkServerAvailableIntervalMs){
             this.checkServerAvailableIntervalMs = checkServerAvailableIntervalMs;
-            return this;
-        }
-
-        /**
-         * 设置检查服务是否可用的timeout时间
-         * @param telnetTimeoutMs
-         * @return
-         */
-        public Builder telnetTimeoutMs(long telnetTimeoutMs){
-            this.telnetTimeoutMs = telnetTimeoutMs;
-            return this;
-        }
-
-        /**
-         * 设置客户端调用报错间的平均最小时间, 如果小于这个时间则设置此客户端不可用
-         * @param minExceptionFrequencyMs
-         * @return
-         */
-        public Builder minExceptionFrequencyMs(long minExceptionFrequencyMs){
-            this.minExceptionFrequencyMs = minExceptionFrequencyMs;
-            return this;
-        }
-
-        /**
-         * 设置客户端调用报错的最大次数, 如果大于这个次数则设置此客户端不可用
-         * @param maxExceptionTimes
-         * @return
-         */
-        public Builder maxExceptionTimes(int maxExceptionTimes){
-            this.maxExceptionTimes = maxExceptionTimes;
             return this;
         }
 
@@ -151,6 +106,16 @@ public class Configure {
          */
         public Builder exceptionHandler(ExceptionHandler exceptionHandler){
             this.exceptionHandler = exceptionHandler;
+            return this;
+        }
+
+        /**
+         * 在报错之后判断是否需要切换服务的策略
+         * @param switchPolicy
+         * @return
+         */
+        public Builder switchPolicy(SwitchPolicy switchPolicy){
+            this.switchPolicy = switchPolicy;
             return this;
         }
 

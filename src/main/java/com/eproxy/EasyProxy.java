@@ -2,6 +2,7 @@ package com.eproxy;
 
 import com.eproxy.loadbalance.*;
 import com.eproxy.utils.TelnetUtil;
+import net.sf.cglib.proxy.Enhancer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +16,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @author 谢俊权
  * @create 2016/5/6 10:26
  */
-public class EasyProxy<T>{
+public abstract class EasyProxy<T>{
 
     private static final Logger logger = LoggerFactory.getLogger(EasyProxy.class);
 
@@ -49,11 +50,6 @@ public class EasyProxy<T>{
      */
     private LoadBalanceStrategy strategy;
 
-    /**
-     * 客户端工厂
-     */
-    private ClientFactory clientFactory;
-
 
     public EasyProxy(ServerInfoResolver resolver) {
         this(resolver.get(), new Configure.Builder().build());
@@ -76,10 +72,9 @@ public class EasyProxy<T>{
      * @param serverInfoList 服务客户端信息列表
      * @param configure 配置信息
      */
-    protected void init(List<ServerInfo> serverInfoList, Configure configure){
+    private void init(List<ServerInfo> serverInfoList, Configure configure){
         this.configure = configure;
         this.strategy = configure.getLoadBalanceStrategy();
-        this.clientFactory = new ClientFactory(configure);
         this.initClientInfo(serverInfoList);
         this.initLoadBalance();
         this.scheduleCheckServerAvailable();
@@ -89,7 +84,7 @@ public class EasyProxy<T>{
     /**
      * 根据配置, 初始化调度策略
      */
-    protected void initLoadBalance() {
+    private void initLoadBalance() {
         int size = this.availableServers.size();
         switch (strategy){
             case RR:
@@ -114,7 +109,7 @@ public class EasyProxy<T>{
      * 初始化服务信息
      * @param serverInfoList 服务信息列表
      */
-    protected void initClientInfo(List<ServerInfo> serverInfoList) {
+    private void initClientInfo(List<ServerInfo> serverInfoList) {
         if(serverInfoList != null && !serverInfoList.isEmpty()){
             this.availableServers.addAll(serverInfoList);
         }
@@ -123,7 +118,7 @@ public class EasyProxy<T>{
     /**
      * 定时检查不可用的服务是否已经恢复
      */
-    protected void scheduleCheckServerAvailable(){
+    private void scheduleCheckServerAvailable(){
         this.timer = new Timer();
         long delayMS = 1000;
         long intervalMS = configure.getCheckServerAvailableIntervalMs();
@@ -164,7 +159,7 @@ public class EasyProxy<T>{
      * @param index 索引
      * @return
      */
-    protected ClosableClient getClient(int index){
+    private ClosableClient getClient(int index){
         if(this.availableServers.isEmpty()){
             logger.error("available server list is empty");
             return null;
@@ -172,7 +167,7 @@ public class EasyProxy<T>{
         ServerInfo serverInfo = availableServers.get(index);
         ClosableClient client = serverInfo.getClient();
         if(client == null){
-            client = create(serverInfo);
+            client = createProxyClient(serverInfo);
         }
         return client;
     }
@@ -182,10 +177,17 @@ public class EasyProxy<T>{
      * @param serverInfo 服务端信息
      * @return
      */
-    protected ClosableClient create(ServerInfo serverInfo){
-        ClosableClient client = clientFactory.create(serverInfo);
-        serverInfo.setClient(client);
-        return client;
+    protected abstract ClosableClient create(ServerInfo serverInfo);
+
+    protected ClosableClient createProxyClient(ServerInfo serverInfo){
+        ClosableClient client = create(serverInfo);
+        Enhancer enhancer = new Enhancer();
+        enhancer.setSuperclass(client.getClass());
+        ClientInterceptor handler = new ClientInterceptor(client, serverInfo, configure);
+        enhancer.setCallback(handler);
+        ClosableClient proxyClient = (ClosableClient) enhancer.create();
+        serverInfo.setClient(proxyClient);
+        return proxyClient;
     }
 
     /**
@@ -202,9 +204,9 @@ public class EasyProxy<T>{
      * 恢复服务为可用
      * @param serverInfo 服务客户端信息
      */
-    protected void toAvailable(ServerInfo serverInfo) {
+    void toAvailable(ServerInfo serverInfo) {
         if(this.unavailableServers.contains(serverInfo)){
-            create(serverInfo);
+            createProxyClient(serverInfo);
             this.availableServers.add(serverInfo);
             this.unavailableServers.remove(serverInfo);
             this.initLoadBalance();
@@ -215,7 +217,7 @@ public class EasyProxy<T>{
      * 设置服务为不可用
      * @param serverInfo 服务客户端信息
      */
-    protected void toUnavailable(ServerInfo serverInfo) {
+    void toUnavailable(ServerInfo serverInfo) {
         if(this.availableServers.contains(serverInfo)) {
             this.destroy(serverInfo);
             this.availableServers.remove(serverInfo);
