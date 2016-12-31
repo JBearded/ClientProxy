@@ -68,6 +68,10 @@ public class Configure {
         return exceptionHandler;
     }
 
+    public SwitchPolicy getSwitchPolicy() {
+        return switchPolicy;
+    }
+
     public static class Builder{
 
         private long checkServerAvailableIntervalMs = 1000 * 60 * 10;

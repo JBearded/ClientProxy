@@ -3,6 +3,7 @@ package com.eproxy;
 import com.eproxy.exception.ExceptionHandler;
 import com.eproxy.exception.IgnoredException;
 import com.eproxy.exception.MethodExceptionInfo;
+import com.eproxy.exception.SwitchPolicy;
 import com.eproxy.utils.TelnetUtil;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
@@ -39,11 +40,11 @@ public class ClientInterceptor implements MethodInterceptor{
         }catch (Throwable e){
 
             if(!(e.getCause() instanceof IgnoredException)){
-                if(!TelnetUtil.isConnect(serverInfo.getIp(), serverInfo.getPort(), configure.getTelnetTimeoutMs())){
-//                    configure.get
-//                    if(policy.needChangeClient(serverInfo.getIp(), serverInfo.getPort())){
-//                        EasyProxyNotifier.getInstance().notifyServerUnavailable(serverInfo);
-//                    }
+                if(!TelnetUtil.isConnect(serverInfo.getIp(), serverInfo.getPort())){
+                    SwitchPolicy policy = configure.getSwitchPolicy();
+                    if(policy.needSwitch(serverInfo.getIp(), serverInfo.getPort())){
+                        EasyProxyNotifier.getInstance().notifyServerUnavailable(serverInfo);
+                    }
                 }
             }
             MethodExceptionInfo exceptionInfo = new MethodExceptionInfo(e, serverInfo, object, method, args);

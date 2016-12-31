@@ -24,8 +24,7 @@ public class JunitTest {
                 .build();
 
         RedisProxy redisProxy = new RedisProxy("redis.xml", configure);
-        for (int i = 0; i < 100; i++) {
-            Thread.sleep(1000);
+        for (int i = 0; i < 10; i++) {
             RedisClient client = redisProxy.getClient();
             client.setex("hello", 60, "world" + i);
         }

@@ -1,13 +1,11 @@
 package redisclient;
 
-import com.eproxy.ClientConstructor;
 import com.eproxy.ServerInfo;
 import com.eproxy.ServerInfoResolver;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
-import redis.clients.jedis.JedisPoolConfig;
 
 import java.net.URL;
 import java.util.ArrayList;

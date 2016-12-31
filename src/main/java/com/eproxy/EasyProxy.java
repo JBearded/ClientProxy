@@ -125,9 +125,8 @@ public abstract class EasyProxy<T>{
         this.timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                long timeoutMS = configure.getTelnetTimeoutMs();
                 for (ServerInfo serverInfo : unavailableServers) {
-                    if(TelnetUtil.isConnect(serverInfo.getIp(), serverInfo.getPort(), timeoutMS)){
+                    if(TelnetUtil.isConnect(serverInfo.getIp(), serverInfo.getPort())){
                         EasyProxyNotifier.getInstance().notifyServerAvailable(serverInfo);
                     }
                 }

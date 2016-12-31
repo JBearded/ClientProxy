@@ -19,15 +19,13 @@ public class TelnetUtil {
      * ip:port 是否能够连通
      * @param ip    ip
      * @param port  端口
-     * @param timeoutMS 连接过时时间
      * @return
      */
-    public static boolean isConnect(String ip, int port, long timeoutMS){
+    public static boolean isConnect(String ip, int port){
         boolean isConnect = false;
-        int defaultTimeout = 1000 * 10;
-        int timeout = (int) timeoutMS;
+        int timeoutMS = 1000 * 5;
         TelnetClient telnetClient = new TelnetClient();
-        telnetClient.setDefaultTimeout((timeout <= 0) ? defaultTimeout : timeout);
+        telnetClient.setDefaultTimeout(timeoutMS);
         try {
             telnetClient.connect(ip, port);
             isConnect = telnetClient.isConnected();
