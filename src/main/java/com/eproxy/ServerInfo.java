@@ -3,7 +3,6 @@ package com.eproxy;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 /**
  * 客户端信息
@@ -33,7 +32,10 @@ public class ServerInfo {
      */
     private ClosableClient client;
 
-    private Map<String, Object> extendInfoMap = new HashMap<>();
+    private Map<String, String> extendInfoMap = new HashMap<>();
+
+    public ServerInfo() {
+    }
 
     public ServerInfo(String ip, int port){
         this.ip = ip;
@@ -61,15 +63,27 @@ public class ServerInfo {
         return client;
     }
 
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public void setWeight(int weight) {
+        this.weight = weight;
+    }
+
     public void setClient(ClosableClient client) {
         this.client = client;
     }
 
-    public void setExtendInfo(String key, Object value){
-        this.extendInfoMap.put(key, value);
+    public void setExtendInfoMap(Map<String, String> extendInfoMap) {
+        this.extendInfoMap = extendInfoMap;
     }
 
-    public Map<String, Object> getExtendInfoMap(){
+    public Map<String, String> getExtendInfoMap(){
         return Collections.unmodifiableMap(this.extendInfoMap);
     }
 

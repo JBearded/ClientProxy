@@ -6,10 +6,10 @@ import net.sf.cglib.proxy.Enhancer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * 客户端代理
@@ -28,57 +28,49 @@ public abstract class EasyProxy<T>{
     /**
      * 代理服务的配置信息
      */
-    private Configure configure;
+    private ProxyConfigure proxyConfigure;
+
+    private ServerConfigure serverConfigure;
 
     /**
      * 可用的服务客户端信息列表
      */
-    private CopyOnWriteArrayList<ServerInfo> availableServers = new CopyOnWriteArrayList<ServerInfo>();
+    private List<ServerInfo> availableServers = new ArrayList<>();
 
     /**
      * 不可用的服务客户端信息列表
      */
-    private CopyOnWriteArrayList<ServerInfo> unavailableServers = new CopyOnWriteArrayList<ServerInfo>();
+    private List<ServerInfo> unavailableServers = new ArrayList<>();
 
     /**
      * 负载均衡调度
      */
     private LoadBalance loadBalance;
 
-    /**
-     * 负载均衡策略
-     */
-    private LoadBalanceStrategy strategy;
+    private EasyProxyNotifier proxyNotifier;
 
 
-    public EasyProxy(ServerInfoResolver resolver) {
-        this(resolver.get(), new Configure.Builder().build());
+    public EasyProxy(String config) {
+        this(config, new ProxyConfigure.Builder().build());
     }
 
-    public EasyProxy(List<ServerInfo> serverInfoList) {
-        this(serverInfoList, new Configure.Builder().build());
-    }
-
-    public EasyProxy(ServerInfoResolver resolver, Configure configure) {
-        this(resolver.get(), configure);
-    }
-
-    public EasyProxy(List<ServerInfo> serverInfoList, Configure configure) {
-        this.init(serverInfoList, configure);
+    public EasyProxy(String config, ProxyConfigure proxyConfigure) {
+        this.init(config, proxyConfigure);
     }
 
     /**
      * 初始化
-     * @param serverInfoList 服务客户端信息列表
-     * @param configure 配置信息
+     * @param config 服务客户端信息列表
+     * @param proxyConfigure 配置信息
      */
-    private void init(List<ServerInfo> serverInfoList, Configure configure){
-        this.configure = configure;
-        this.strategy = configure.getLoadBalanceStrategy();
-        this.initClientInfo(serverInfoList);
+    private void init(String config, ProxyConfigure proxyConfigure){
+        this.proxyNotifier = EasyProxyNotifier.getInstance();
+        this.proxyConfigure = proxyConfigure;
+        this.serverConfigure = ServerConfigureResolver.get(config);
+        this.initClientInfo(serverConfigure.getServerInfoList());
         this.initLoadBalance();
         this.scheduleCheckServerAvailable();
-        EasyProxyNotifier.getInstance().subClientProxy(this);
+        proxyNotifier.subClientProxy(this);
     }
 
     /**
@@ -86,6 +78,7 @@ public abstract class EasyProxy<T>{
      */
     private void initLoadBalance() {
         int size = this.availableServers.size();
+        LoadBalanceStrategy strategy = this.proxyConfigure.getLoadBalanceStrategy();
         switch (strategy){
             case RR:
                 this.loadBalance = new RRLoadBalance(size);
@@ -121,13 +114,13 @@ public abstract class EasyProxy<T>{
     private void scheduleCheckServerAvailable(){
         this.timer = new Timer();
         long delayMS = 1000;
-        long intervalMS = configure.getCheckServerAvailableIntervalMs();
+        long intervalMS = proxyConfigure.getCheckServerAvailableIntervalMs();
         this.timer.schedule(new TimerTask() {
             @Override
             public void run() {
                 for (ServerInfo serverInfo : unavailableServers) {
                     if(TelnetUtil.isConnect(serverInfo.getIp(), serverInfo.getPort())){
-                        EasyProxyNotifier.getInstance().notifyServerAvailable(serverInfo);
+                        proxyNotifier.notifyServerAvailable(serverInfo);
                     }
                 }
             }
@@ -182,7 +175,7 @@ public abstract class EasyProxy<T>{
         ClosableClient client = create(serverInfo);
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(client.getClass());
-        ClientInterceptor handler = new ClientInterceptor(client, serverInfo, configure);
+        ClientInterceptor handler = new ClientInterceptor(client, serverInfo, proxyConfigure);
         enhancer.setCallback(handler);
         ClosableClient proxyClient = (ClosableClient) enhancer.create();
         serverInfo.setClient(proxyClient);
@@ -203,7 +196,7 @@ public abstract class EasyProxy<T>{
      * 恢复服务为可用
      * @param serverInfo 服务客户端信息
      */
-    void toAvailable(ServerInfo serverInfo) {
+     synchronized void toAvailable(ServerInfo serverInfo) {
         if(this.unavailableServers.contains(serverInfo)){
             createProxyClient(serverInfo);
             this.availableServers.add(serverInfo);
@@ -216,7 +209,7 @@ public abstract class EasyProxy<T>{
      * 设置服务为不可用
      * @param serverInfo 服务客户端信息
      */
-    void toUnavailable(ServerInfo serverInfo) {
+    synchronized void toUnavailable(ServerInfo serverInfo) {
         if(this.availableServers.contains(serverInfo)) {
             this.destroy(serverInfo);
             this.availableServers.remove(serverInfo);

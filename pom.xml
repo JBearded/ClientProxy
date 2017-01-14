@@ -19,7 +19,7 @@
   </build>
   <packaging>jar</packaging>
 
-  <name>ClientProxy</name>
+  <name>EasyProxy</name>
   <url>http://maven.apache.org</url>
 
   <properties>
@@ -56,6 +56,12 @@
       <groupId>cglib</groupId>
       <artifactId>cglib</artifactId>
       <version>3.2.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.zookeeper</groupId>
+      <artifactId>zookeeper</artifactId>
+      <version>3.4.8</version>
     </dependency>
 
 

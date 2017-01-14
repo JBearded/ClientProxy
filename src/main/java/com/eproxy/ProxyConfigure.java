@@ -5,13 +5,15 @@ import com.eproxy.exception.DefaultSwitchPolicy;
 import com.eproxy.exception.ExceptionHandler;
 import com.eproxy.exception.SwitchPolicy;
 import com.eproxy.loadbalance.LoadBalanceStrategy;
+import com.eproxy.zookeeper.DefaultZookeeperServerDataResolver;
+import com.eproxy.zookeeper.ZookeeperServerDataResolver;
 
 /**
  * 服务代理的配置信息
  * @author 谢俊权
  * @create 2016/9/5 14:26
  */
-public class Configure {
+public class ProxyConfigure {
 
 
     /**
@@ -41,17 +43,23 @@ public class Configure {
 
     private SwitchPolicy switchPolicy;
 
+    private ZookeeperServerDataResolver zookeeperServerDataResolver;
 
-    public Configure(Builder builder) {
+
+    public ProxyConfigure(Builder builder) {
         this.checkServerAvailableIntervalMs = builder.checkServerAvailableIntervalMs;
         this.loadBalanceStrategy = builder.loadBalanceStrategy;
         this.exceptionHandler = builder.exceptionHandler;
         this.switchPolicy = builder.switchPolicy;
+        this.zookeeperServerDataResolver = builder.zookeeperServerDataResolver;
         if(this.exceptionHandler == null){
            this.exceptionHandler = new DefaultExceptionHandler();
         }
         if(this.switchPolicy == null){
             this.switchPolicy = new DefaultSwitchPolicy(minExceptionFrequency, maxExceptionTimes);
+        }
+        if(zookeeperServerDataResolver == null){
+            this.zookeeperServerDataResolver = new DefaultZookeeperServerDataResolver();
         }
 
     }
@@ -81,6 +89,8 @@ public class Configure {
         private ExceptionHandler exceptionHandler;
 
         private SwitchPolicy switchPolicy;
+
+        private ZookeeperServerDataResolver zookeeperServerDataResolver;
 
         /**
          * 设置定时检查服务是否可用的间隔时间
@@ -123,8 +133,18 @@ public class Configure {
             return this;
         }
 
-        public Configure build(){
-            return new Configure(this);
+        /**
+         * zookeeper获取服务的解析器
+         * @param resolver
+         * @return
+         */
+        public Builder zookeeperServerDataResolver(ZookeeperServerDataResolver resolver){
+            this.zookeeperServerDataResolver = resolver;
+            return this;
+        }
+
+        public ProxyConfigure build(){
+            return new ProxyConfigure(this);
         }
 
     }

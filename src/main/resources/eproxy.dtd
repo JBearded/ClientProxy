@@ -1,0 +1,9 @@
+<!ELEMENT eproxy (groupId,serverName,defaultHosts,extendInfo)>
+        <!ELEMENT groupId (#PCDATA)>
+        <!ELEMENT serverName (#PCDATA)>
+        <!ELEMENT defaultHosts (#PCDATA)>
+        <!ELEMENT extendInfo (property*)>
+        <!ELEMENT property EMPTY>
+<!ATTLIST property
+        key CDATA #REQUIRED
+        value CDATA #REQUIRED>

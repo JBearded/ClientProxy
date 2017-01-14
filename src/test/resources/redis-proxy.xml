@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE eproxy SYSTEM "eproxy.dtd">
+<eproxy>
+    <groupId>123</groupId>
+    <serverName>redisServer</serverName>
+    <defaultHosts>127.0.0.1:6380:1;127.0.0.1:6381:2</defaultHosts>
+    <extendInfo>
+        <property key="maxActive" value="100"></property>
+        <property key="maxIdle" value="100"></property>
+        <property key="minIdle" value="20"></property>
+        <property key="timeout" value="10000"></property>
+    </extendInfo>
+</eproxy>

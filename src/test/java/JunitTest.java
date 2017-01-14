@@ -1,7 +1,8 @@
-import com.eproxy.Configure;
+import com.eproxy.ProxyConfigure;
 import com.eproxy.exception.DefaultExceptionHandler;
 import com.eproxy.exception.DefaultSwitchPolicy;
 import com.eproxy.loadbalance.LoadBalanceStrategy;
+import com.eproxy.zookeeper.DefaultZookeeperServerDataResolver;
 import org.junit.Test;
 import redisclient.RedisClient;
 import redisclient.RedisProxy;
@@ -15,16 +16,17 @@ public class JunitTest {
     @Test
     public void redisTest() throws InterruptedException {
 
-
-        Configure configure = new Configure.Builder()
+        ProxyConfigure proxyConfigure = new ProxyConfigure.Builder()
                 .checkServerAvailableIntervalMs(1000 * 10)
                 .loadBalanceStrategy(LoadBalanceStrategy.WRR)
                 .exceptionHandler(new DefaultExceptionHandler())
                 .switchPolicy(new DefaultSwitchPolicy(1, 2))
+                .zookeeperServerDataResolver(new DefaultZookeeperServerDataResolver())
                 .build();
 
-        RedisProxy redisProxy = new RedisProxy("redis.xml", configure);
-        for (int i = 0; i < 10; i++) {
+        RedisProxy redisProxy = new RedisProxy("redis-proxy.xml", proxyConfigure);
+        for (int i = 0; i < 100; i++) {
+            Thread.sleep(1000);
             RedisClient client = redisProxy.getClient();
             client.setex("hello", 60, "world" + i);
         }

@@ -3,7 +3,6 @@ package com.eproxy;
 import com.eproxy.exception.ExceptionHandler;
 import com.eproxy.exception.IgnoredException;
 import com.eproxy.exception.MethodExceptionInfo;
-import com.eproxy.exception.SwitchPolicy;
 import com.eproxy.utils.TelnetUtil;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
@@ -22,13 +21,13 @@ public class ClientInterceptor implements MethodInterceptor{
     private static final Logger logger  = LoggerFactory.getLogger(ClientInterceptor.class);
 
     private ClosableClient client;
-    private Configure configure;
+    private ProxyConfigure proxyConfigure;
     private ServerInfo serverInfo;
 
-    public ClientInterceptor(ClosableClient client, ServerInfo serverInfo, Configure configure) {
+    public ClientInterceptor(ClosableClient client, ServerInfo serverInfo, ProxyConfigure proxyConfigure) {
         this.client = client;
         this.serverInfo = serverInfo;
-        this.configure = configure;
+        this.proxyConfigure = proxyConfigure;
     }
 
     @Override
@@ -41,14 +40,15 @@ public class ClientInterceptor implements MethodInterceptor{
 
             if(!(e.getCause() instanceof IgnoredException)){
                 if(!TelnetUtil.isConnect(serverInfo.getIp(), serverInfo.getPort())){
-                    SwitchPolicy policy = configure.getSwitchPolicy();
-                    if(policy.needSwitch(serverInfo.getIp(), serverInfo.getPort())){
-                        EasyProxyNotifier.getInstance().notifyServerUnavailable(serverInfo);
-                    }
+                    EasyProxyNotifier.getInstance().notifyServerUnavailable(serverInfo);
+//                    SwitchPolicy policy = proxyConfigure.getSwitchPolicy();
+//                    if(policy.needSwitch(serverInfo.getIp(), serverInfo.getPort())){
+//                        EasyProxyNotifier.getInstance().notifyServerUnavailable(serverInfo);
+//                    }
                 }
             }
             MethodExceptionInfo exceptionInfo = new MethodExceptionInfo(e, serverInfo, object, method, args);
-            ExceptionHandler handler = configure.getExceptionHandler();
+            ExceptionHandler handler = proxyConfigure.getExceptionHandler();
             handler.handle(exceptionInfo);
         }
         return result;
