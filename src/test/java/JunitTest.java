@@ -3,6 +3,7 @@ import com.eproxy.exception.DefaultExceptionHandler;
 import com.eproxy.exception.DefaultSwitchPolicy;
 import com.eproxy.loadbalance.LoadBalanceStrategy;
 import com.eproxy.zookeeper.DefaultZookeeperServerDataResolver;
+import com.eproxy.zookeeper.ZookeeperHostsGetter;
 import org.junit.Test;
 import redisclient.RedisClient;
 import redisclient.RedisProxy;
@@ -24,6 +25,12 @@ public class JunitTest {
                 .exceptionHandler(new DefaultExceptionHandler())
                 .switchPolicy(new DefaultSwitchPolicy(1, 2))
                 .zookeeperServerDataResolver(new DefaultZookeeperServerDataResolver())
+                .zookeeperHostsGetter(new ZookeeperHostsGetter() {
+                    @Override
+                    public String get(long groupId) {
+                        return "192.168.126.128:2181";
+                    }
+                })
                 .build();
 
         RedisProxy redisProxy = new RedisProxy("redis-proxy.xml", proxyConfigure);

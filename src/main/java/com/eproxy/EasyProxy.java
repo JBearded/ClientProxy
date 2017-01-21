@@ -101,20 +101,8 @@ public abstract class EasyProxy<T>{
     }
 
     private void initZookeeper(){
-        long groupId = serverConfigure.getGroupId();
-        ZookeeperHostsGetter zookeeperHostsGetter = proxyConfigure.getZookeeperHostsGetter();
-        String hosts = (zookeeperHostsGetter == null) ? null : zookeeperHostsGetter.get(groupId);
-        this.zookeeperClient = new ZookeeperClient((hosts == null) ? serverConfigure.getZookeeperHosts() : hosts);
-        this.zookeeperClient.asynchServerData(serverConfigure.getServerName(), new AsyncCallback.DataCallback() {
-            @Override
-            public void processResult(int rc, String path, Object ctx, byte[] data, Stat stat) {
-                List<ServerInfo> serverInfoList = proxyConfigure.getZookeeperServerDataResolver().get(data);
-                for(ServerInfo serverInfo : serverInfoList){
-                    serverInfo.setExtendInfoMap(serverConfigure.getExtendInfo());
-                }
-                initClientInfo(serverInfoList);
-            }
-        });
+        this.zookeeperClient = new ZookeeperClient(proxyConfigure, serverConfigure);
+        this.zookeeperClient.asyncServerData();
     }
 
     /**
@@ -197,6 +185,7 @@ public abstract class EasyProxy<T>{
             ClosableClient client = serverInfo.getClient();
             if(client == null){
                 client = createProxyClient(serverInfo);
+                serverInfo.setClient(client);
             }
             return client;
         }finally {
@@ -227,7 +216,9 @@ public abstract class EasyProxy<T>{
      */
     protected void destroy(ServerInfo serverInfo){
         ClosableClient client = serverInfo.getClient();
-        client.close();
+        if(client != null){
+            client.close();
+        }
         serverInfo.setClient(null);
     }
 
@@ -238,7 +229,7 @@ public abstract class EasyProxy<T>{
      void toAvailable(ServerInfo serverInfo) {
          reentrantLock.lock();
          try{
-             if(this.unavailableServers.contains(serverInfo)){
+             if(!this.availableServers.contains(serverInfo)){
                  ClosableClient client = createProxyClient(serverInfo);
                  serverInfo.setClient(client);
                  this.availableServers.add(serverInfo);

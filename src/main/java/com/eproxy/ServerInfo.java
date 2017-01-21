@@ -101,4 +101,9 @@ public class ServerInfo {
         result = 37 * result + port;
         return result;
     }
+
+    @Override
+    public String toString() {
+        return new StringBuilder().append(ip).append(";").append(port).append(";").append(weight).toString();
+    }
 }

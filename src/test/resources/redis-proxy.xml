@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE eproxy SYSTEM "eproxy.dtd">
 <eproxy>
-    <zookeeperHosts>127.0.0.1:6380</zookeeperHosts>
+    <zookeeperHosts>192.168.126.128:2181</zookeeperHosts>
     <groupId>123</groupId>
     <serverName>redisServer</serverName>
-    <defaultHosts>127.0.0.1:6380:1;127.0.0.1:6381:2</defaultHosts>
+    <defaultHosts>192.168.126.128:6380:1</defaultHosts>
     <extendInfo>
         <property key="maxActive" value="100"></property>
         <property key="maxIdle" value="100"></property>
