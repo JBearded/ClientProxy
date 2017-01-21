@@ -18,6 +18,8 @@ public class JunitTest {
 
         ProxyConfigure proxyConfigure = new ProxyConfigure.Builder()
                 .checkServerAvailableIntervalMs(1000 * 10)
+                .maxCountExceptionSecondTime(60)
+                .maxExceptionTimes(5)
                 .loadBalanceStrategy(LoadBalanceStrategy.WRR)
                 .exceptionHandler(new DefaultExceptionHandler())
                 .switchPolicy(new DefaultSwitchPolicy(1, 2))

@@ -21,9 +21,8 @@ public class TelnetUtil {
      * @param port  端口
      * @return
      */
-    public static boolean isConnect(String ip, int port){
+    public static boolean isConnect(String ip, int port, int timeoutMS){
         boolean isConnect = false;
-        int timeoutMS = 1000 * 5;
         TelnetClient telnetClient = new TelnetClient();
         telnetClient.setDefaultTimeout(timeoutMS);
         try {

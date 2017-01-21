@@ -72,7 +72,7 @@ public abstract class ServerConfigureResolver {
         return serverConfigure;
     }
 
-    private static List<ServerInfo> getServerInfoList(String hosts, Map<String, String> extendInfo){
+    public static List<ServerInfo> getServerInfoList(String hosts, Map<String, String> extendInfo){
         List<ServerInfo> serverInfoList = new ArrayList<>();
         if(hosts != null && !"".equals(hosts.trim())){
             String[] hostArray = hosts.split(";");

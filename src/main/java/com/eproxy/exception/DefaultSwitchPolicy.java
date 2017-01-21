@@ -9,16 +9,14 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class DefaultSwitchPolicy implements SwitchPolicy{
 
-    private int minExceptionFrequency = 1;
+    private int maxCountExceptionSecondTime = 60;
 
     private int maxExceptionTimes = 20;
 
-    private int maxCleanTime = 200;
-
     private ConcurrentMap<String, ExceptionInfo> exceptionInfoMap = new ConcurrentHashMap<>();
 
-    public DefaultSwitchPolicy(int minExceptionFrequency, int maxExceptionTimes) {
-        this.minExceptionFrequency = minExceptionFrequency;
+    public DefaultSwitchPolicy(int maxCountExceptionSecondTime, int maxExceptionTimes) {
+        this.maxCountExceptionSecondTime = maxCountExceptionSecondTime;
         this.maxExceptionTimes = maxExceptionTimes;
     }
 
@@ -36,14 +34,11 @@ public class DefaultSwitchPolicy implements SwitchPolicy{
         if(exceptionInfoMap.containsKey(key)){
             ExceptionInfo exceptionInfo = exceptionInfoMap.get(key);
             long fistTime = exceptionInfo.firstExceptionTime;
-            long lastTime = exceptionInfo.lastExceptionTime;
-            long timeLength = lastTime - fistTime;
+            long currTime = exceptionInfo.currentExceptionTime;
             int times = exceptionInfo.exceptionTimes;
-            if(timeLength < maxCleanTime) {
-                long seconds = (timeLength / 1000 == 0) ? 1 : timeLength / 1000;
-                if (times >= maxExceptionTimes || times / seconds >= minExceptionFrequency) {
-                    need = true;
-                }
+            long timeLength = (currTime - fistTime) / 1000L;
+            if(times >= maxExceptionTimes && timeLength < maxCountExceptionSecondTime) {
+                need = true;
             }
         }
         if(need){
@@ -75,7 +70,6 @@ public class DefaultSwitchPolicy implements SwitchPolicy{
     class ExceptionInfo{
         private int exceptionTimes = 0;
         private long firstExceptionTime = 0;
-        private long lastExceptionTime = 0;
         private long currentExceptionTime = 0;
 
         public ExceptionInfo() {
@@ -85,7 +79,6 @@ public class DefaultSwitchPolicy implements SwitchPolicy{
 
         private void increaseTimes(){
             exceptionTimes++;
-            lastExceptionTime = currentExceptionTime;
             currentExceptionTime = System.currentTimeMillis();
         }
 

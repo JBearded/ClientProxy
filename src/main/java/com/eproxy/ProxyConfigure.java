@@ -6,6 +6,7 @@ import com.eproxy.exception.ExceptionHandler;
 import com.eproxy.exception.SwitchPolicy;
 import com.eproxy.loadbalance.LoadBalanceStrategy;
 import com.eproxy.zookeeper.DefaultZookeeperServerDataResolver;
+import com.eproxy.zookeeper.ZookeeperHostsGetter;
 import com.eproxy.zookeeper.ZookeeperServerDataResolver;
 
 /**
@@ -22,9 +23,14 @@ public class ProxyConfigure {
     private long checkServerAvailableIntervalMs = 1000 * 60 * 10;
 
     /**
-     * 客户端调用报错间的平均最小时间, 如果小于这个时间则设置此客户端不可用
+     * telnet检查服务是否可用的超时时间
      */
-    private int minExceptionFrequency = 1;
+    private int telnetTimeoutMs = 1000 * 2;
+
+    /**
+     * 统计客户端调用报错次数的最大时间
+     */
+    private int maxCountExceptionSecondTime = 60;
 
     /**
      * 客户端调用报错的最大次数, 如果大于这个次数则设置此客户端不可用
@@ -45,18 +51,24 @@ public class ProxyConfigure {
 
     private ZookeeperServerDataResolver zookeeperServerDataResolver;
 
+    private ZookeeperHostsGetter zookeeperHostsGetter;
+
 
     public ProxyConfigure(Builder builder) {
         this.checkServerAvailableIntervalMs = builder.checkServerAvailableIntervalMs;
+        this.maxCountExceptionSecondTime = builder.maxCountExceptionSecondTime;
+        this.maxExceptionTimes = builder.maxExceptionTimes;
+        this.telnetTimeoutMs = builder.telnetTimeoutMs;
         this.loadBalanceStrategy = builder.loadBalanceStrategy;
         this.exceptionHandler = builder.exceptionHandler;
         this.switchPolicy = builder.switchPolicy;
         this.zookeeperServerDataResolver = builder.zookeeperServerDataResolver;
+        this.zookeeperHostsGetter = builder.zookeeperHostsGetter;
         if(this.exceptionHandler == null){
            this.exceptionHandler = new DefaultExceptionHandler();
         }
         if(this.switchPolicy == null){
-            this.switchPolicy = new DefaultSwitchPolicy(minExceptionFrequency, maxExceptionTimes);
+            this.switchPolicy = new DefaultSwitchPolicy(maxCountExceptionSecondTime, maxExceptionTimes);
         }
         if(zookeeperServerDataResolver == null){
             this.zookeeperServerDataResolver = new DefaultZookeeperServerDataResolver();
@@ -66,6 +78,18 @@ public class ProxyConfigure {
 
     public long getCheckServerAvailableIntervalMs() {
         return checkServerAvailableIntervalMs;
+    }
+
+    public int getTelnetTimeoutMs() {
+        return telnetTimeoutMs;
+    }
+
+    public int getMaxCountExceptionSecondTime() {
+        return maxCountExceptionSecondTime;
+    }
+
+    public int getMaxExceptionTimes() {
+        return maxExceptionTimes;
     }
 
     public LoadBalanceStrategy getLoadBalanceStrategy() {
@@ -80,9 +104,23 @@ public class ProxyConfigure {
         return switchPolicy;
     }
 
+    public ZookeeperServerDataResolver getZookeeperServerDataResolver() {
+        return zookeeperServerDataResolver;
+    }
+
+    public ZookeeperHostsGetter getZookeeperHostsGetter() {
+        return zookeeperHostsGetter;
+    }
+
     public static class Builder{
 
         private long checkServerAvailableIntervalMs = 1000 * 60 * 10;
+
+        private int maxCountExceptionSecondTime = 60;
+
+        private int maxExceptionTimes = 2;
+
+        private int telnetTimeoutMs = 1000 * 2;
 
         private LoadBalanceStrategy loadBalanceStrategy = LoadBalanceStrategy.HASH;
 
@@ -92,54 +130,50 @@ public class ProxyConfigure {
 
         private ZookeeperServerDataResolver zookeeperServerDataResolver;
 
-        /**
-         * 设置定时检查服务是否可用的间隔时间
-         * @param checkServerAvailableIntervalMs
-         * @return
-         */
+        private ZookeeperHostsGetter zookeeperHostsGetter;
+
         public Builder checkServerAvailableIntervalMs(long checkServerAvailableIntervalMs){
             this.checkServerAvailableIntervalMs = checkServerAvailableIntervalMs;
             return this;
         }
 
-        /**
-         * 设置负载均衡的策略
-         * @param loadBalanceStrategy
-         * @return
-         */
+        public Builder maxCountExceptionSecondTime(int maxCountExceptionSecondTime){
+            this.maxCountExceptionSecondTime = maxCountExceptionSecondTime;
+            return this;
+        }
+
+        public Builder maxExceptionTimes(int maxExceptionTimes){
+            this.maxExceptionTimes = maxExceptionTimes;
+            return this;
+        }
+
+        public Builder telnetTimeoutMs(int telnetTimeoutMs){
+            this.telnetTimeoutMs = telnetTimeoutMs;
+            return this;
+        }
+
         public Builder loadBalanceStrategy(LoadBalanceStrategy loadBalanceStrategy){
             this.loadBalanceStrategy = loadBalanceStrategy;
             return this;
         }
 
-
-        /**
-         * 调用客户端方法报错之后的处理器
-         * @param exceptionHandler
-         * @return
-         */
         public Builder exceptionHandler(ExceptionHandler exceptionHandler){
             this.exceptionHandler = exceptionHandler;
             return this;
         }
 
-        /**
-         * 在报错之后判断是否需要切换服务的策略
-         * @param switchPolicy
-         * @return
-         */
         public Builder switchPolicy(SwitchPolicy switchPolicy){
             this.switchPolicy = switchPolicy;
             return this;
         }
 
-        /**
-         * zookeeper获取服务的解析器
-         * @param resolver
-         * @return
-         */
         public Builder zookeeperServerDataResolver(ZookeeperServerDataResolver resolver){
             this.zookeeperServerDataResolver = resolver;
+            return this;
+        }
+
+        public Builder zookeeperHostsGetter(ZookeeperHostsGetter zookeeperHostsGetter){
+            this.zookeeperHostsGetter = zookeeperHostsGetter;
             return this;
         }
 

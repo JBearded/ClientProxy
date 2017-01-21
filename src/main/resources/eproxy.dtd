@@ -1,4 +1,5 @@
-<!ELEMENT eproxy (groupId,serverName,defaultHosts,extendInfo)>
+<!ELEMENT eproxy (zookeeperHosts,groupId,serverName,defaultHosts,extendInfo)>
+        <!ELEMENT zookeeperHosts (#PCDATA)>
         <!ELEMENT groupId (#PCDATA)>
         <!ELEMENT serverName (#PCDATA)>
         <!ELEMENT defaultHosts (#PCDATA)>

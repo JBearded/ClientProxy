@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE eproxy SYSTEM "eproxy.dtd">
 <eproxy>
+    <zookeeperHosts>127.0.0.1:6380</zookeeperHosts>
     <groupId>123</groupId>
     <serverName>redisServer</serverName>
     <defaultHosts>127.0.0.1:6380:1;127.0.0.1:6381:2</defaultHosts>

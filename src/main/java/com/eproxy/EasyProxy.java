@@ -2,7 +2,11 @@ package com.eproxy;
 
 import com.eproxy.loadbalance.*;
 import com.eproxy.utils.TelnetUtil;
+import com.eproxy.zookeeper.ZookeeperClient;
+import com.eproxy.zookeeper.ZookeeperHostsGetter;
 import net.sf.cglib.proxy.Enhancer;
+import org.apache.zookeeper.AsyncCallback;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 客户端代理
@@ -19,6 +24,8 @@ import java.util.TimerTask;
 public abstract class EasyProxy<T>{
 
     private static final Logger logger = LoggerFactory.getLogger(EasyProxy.class);
+
+    private static final ReentrantLock reentrantLock = new ReentrantLock(false);
 
     /**
      * 检查服务是否可用的定时器
@@ -49,6 +56,8 @@ public abstract class EasyProxy<T>{
 
     private EasyProxyNotifier proxyNotifier;
 
+    private ZookeeperClient zookeeperClient;
+
 
     public EasyProxy(String config) {
         this(config, new ProxyConfigure.Builder().build());
@@ -61,16 +70,51 @@ public abstract class EasyProxy<T>{
     /**
      * 初始化
      * @param config 服务客户端信息列表
-     * @param proxyConfigure 配置信息
+     * @param pConfig 配置信息
      */
-    private void init(String config, ProxyConfigure proxyConfigure){
+    private void init(String config, ProxyConfigure pConfig){
         this.proxyNotifier = EasyProxyNotifier.getInstance();
-        this.proxyConfigure = proxyConfigure;
+        this.proxyConfigure = pConfig;
         this.serverConfigure = ServerConfigureResolver.get(config);
         this.initClientInfo(serverConfigure.getServerInfoList());
-        this.initLoadBalance();
+        this.initZookeeper();
+        this.proxyNotifier.subClientProxy(this);
         this.scheduleCheckServerAvailable();
-        proxyNotifier.subClientProxy(this);
+    }
+
+    /**
+     * 初始化服务信息
+     * @param serverInfoList 服务信息列表
+     */
+    private void initClientInfo(List<ServerInfo> serverInfoList) {
+        reentrantLock.lock();
+        try{
+            if(serverInfoList != null && !serverInfoList.isEmpty()){
+                this.unavailableServers.clear();
+                this.availableServers.clear();
+                this.availableServers.addAll(serverInfoList);
+                this.initLoadBalance();
+            }
+        }finally {
+            reentrantLock.unlock();
+        }
+    }
+
+    private void initZookeeper(){
+        long groupId = serverConfigure.getGroupId();
+        ZookeeperHostsGetter zookeeperHostsGetter = proxyConfigure.getZookeeperHostsGetter();
+        String hosts = (zookeeperHostsGetter == null) ? null : zookeeperHostsGetter.get(groupId);
+        this.zookeeperClient = new ZookeeperClient((hosts == null) ? serverConfigure.getZookeeperHosts() : hosts);
+        this.zookeeperClient.asynchServerData(serverConfigure.getServerName(), new AsyncCallback.DataCallback() {
+            @Override
+            public void processResult(int rc, String path, Object ctx, byte[] data, Stat stat) {
+                List<ServerInfo> serverInfoList = proxyConfigure.getZookeeperServerDataResolver().get(data);
+                for(ServerInfo serverInfo : serverInfoList){
+                    serverInfo.setExtendInfoMap(serverConfigure.getExtendInfo());
+                }
+                initClientInfo(serverInfoList);
+            }
+        });
     }
 
     /**
@@ -98,15 +142,6 @@ public abstract class EasyProxy<T>{
         }
     }
 
-    /**
-     * 初始化服务信息
-     * @param serverInfoList 服务信息列表
-     */
-    private void initClientInfo(List<ServerInfo> serverInfoList) {
-        if(serverInfoList != null && !serverInfoList.isEmpty()){
-            this.availableServers.addAll(serverInfoList);
-        }
-    }
 
     /**
      * 定时检查不可用的服务是否已经恢复
@@ -119,7 +154,7 @@ public abstract class EasyProxy<T>{
             @Override
             public void run() {
                 for (ServerInfo serverInfo : unavailableServers) {
-                    if(TelnetUtil.isConnect(serverInfo.getIp(), serverInfo.getPort())){
+                    if(TelnetUtil.isConnect(serverInfo.getIp(), serverInfo.getPort(), proxyConfigure.getTelnetTimeoutMs())){
                         proxyNotifier.notifyServerAvailable(serverInfo);
                     }
                 }
@@ -152,16 +187,21 @@ public abstract class EasyProxy<T>{
      * @return
      */
     private ClosableClient getClient(int index){
-        if(this.availableServers.isEmpty()){
-            logger.error("available server list is empty");
-            return null;
+        reentrantLock.lock();
+        try{
+            if(this.availableServers.isEmpty()){
+                logger.error("available server list is empty");
+                return null;
+            }
+            ServerInfo serverInfo = availableServers.get(index);
+            ClosableClient client = serverInfo.getClient();
+            if(client == null){
+                client = createProxyClient(serverInfo);
+            }
+            return client;
+        }finally {
+            reentrantLock.unlock();
         }
-        ServerInfo serverInfo = availableServers.get(index);
-        ClosableClient client = serverInfo.getClient();
-        if(client == null){
-            client = createProxyClient(serverInfo);
-        }
-        return client;
     }
 
     /**
@@ -178,7 +218,6 @@ public abstract class EasyProxy<T>{
         ClientInterceptor handler = new ClientInterceptor(client, serverInfo, proxyConfigure);
         enhancer.setCallback(handler);
         ClosableClient proxyClient = (ClosableClient) enhancer.create();
-        serverInfo.setClient(proxyClient);
         return proxyClient;
     }
 
@@ -196,25 +235,36 @@ public abstract class EasyProxy<T>{
      * 恢复服务为可用
      * @param serverInfo 服务客户端信息
      */
-     synchronized void toAvailable(ServerInfo serverInfo) {
-        if(this.unavailableServers.contains(serverInfo)){
-            createProxyClient(serverInfo);
-            this.availableServers.add(serverInfo);
-            this.unavailableServers.remove(serverInfo);
-            this.initLoadBalance();
-        }
+     void toAvailable(ServerInfo serverInfo) {
+         reentrantLock.lock();
+         try{
+             if(this.unavailableServers.contains(serverInfo)){
+                 ClosableClient client = createProxyClient(serverInfo);
+                 serverInfo.setClient(client);
+                 this.availableServers.add(serverInfo);
+                 this.unavailableServers.remove(serverInfo);
+                 this.initLoadBalance();
+             }
+         }finally {
+             reentrantLock.unlock();
+         }
     }
 
     /**
      * 设置服务为不可用
      * @param serverInfo 服务客户端信息
      */
-    synchronized void toUnavailable(ServerInfo serverInfo) {
-        if(this.availableServers.contains(serverInfo)) {
-            this.destroy(serverInfo);
-            this.availableServers.remove(serverInfo);
-            this.unavailableServers.add(serverInfo);
-            this.initLoadBalance();
+    void toUnavailable(ServerInfo serverInfo) {
+        reentrantLock.lock();
+        try{
+            if(this.availableServers.contains(serverInfo)) {
+                this.destroy(serverInfo);
+                this.availableServers.remove(serverInfo);
+                this.unavailableServers.add(serverInfo);
+                this.initLoadBalance();
+            }
+        }finally {
+            reentrantLock.unlock();
         }
     }
 

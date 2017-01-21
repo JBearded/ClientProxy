@@ -11,11 +11,16 @@ import java.util.Map;
  */
 public class ServerConfigure {
 
+    private String zookeeperHosts;
     private long groupId;
     private String serverName;
     private Map<String, String> extendInfo = new HashMap<>();
     private List<ServerInfo> serverInfoList = new ArrayList<>();
 
+
+    public void setZookeeperHosts(String zookeeperHosts) {
+        this.zookeeperHosts = zookeeperHosts;
+    }
 
     public void setGroupId(long groupId) {
         this.groupId = groupId;
@@ -31,6 +36,10 @@ public class ServerConfigure {
 
     public void setServerInfoList(List<ServerInfo> serverInfoList) {
         this.serverInfoList = serverInfoList;
+    }
+
+    public String getZookeeperHosts() {
+        return zookeeperHosts;
     }
 
     public long getGroupId() {
