@@ -1,24 +1,29 @@
 # EasyProxy
 
-## 简介
-此项目用于多个服务的客户端代理，达到高可用的作用
+此项目是一个基于客户端的负载均衡代理, 代理通过RR,WRR等算法去配置的多个服务中选择一个作为访问目标, 而且如果有服务不可用, 代理也会自动做切换处理, 并定时检查不可用的服务是否已经可用.
+假如你有一个服务部署了3个进程A、B、C, 当你正在发布A进程时(或A进程挂掉), 客户端代理就会去访问B和C, 直到A进程发布完成(或A进程恢复).
 
 ## 使用
 
-* 编写实现ClosableClient类的客户端
-* 编写实现ServerInfoResolver类，用于获取服务端信息的列表（也可在EasyProxy中传入一个ServerInfo List）
-* 运行代理类代码
+为了使用这个代理, 你需要做以下工作
+* 实现ClosableClient接口的客户端(此客户端必须要有一个空的构造器)
+* 继承EasyProxy类, 实现create方法
+* 配置服务列表信息
 
-### 实现ClosableClient
+### 实现ClosableClient接口
 
     public class RedisClient implements ClosableClient{
 
         private JedisPool jedisPool;
 
+        //必须有一个空构造器
+        public RedisClient(){
+
+        }
+
         public RedisClient(JedisPoolConfig config, String ip, int port, int timeout) {
             this.jedisPool = new JedisPool(config, ip, port, timeout);
         }
-
 
         public String set(String key, String value) {
             Jedis jedis = jedisPool.getResource();
@@ -61,172 +66,73 @@
         }
     }
 
-### 实现ServerInfoResolver(在junit测试中, 解析xml的信息)
+### 继承EasyProxy类
 
-redis.xml(配置多个redis服务)
+    public class RedisProxy extends EasyProxy<RedisClient> {
 
-    <?xml version="1.0" encoding="UTF-8"?>
-    <redises>
-        <redis>
-            <host>127.0.0.1</host>
-            <port>6380</port>
-            <maxActive>100</maxActive>
-            <maxIdle>100</maxIdle>
-            <minIdle>20</minIdle>
-            <timeout>10000</timeout>
-            <weight>1</weight>
-        </redis>
-        <redis>
-            <host>127.0.0.1</host>
-            <port>6381</port>
-            <maxActive>100</maxActive>
-            <maxIdle>100</maxIdle>
-            <minIdle>20</minIdle>
-            <timeout>10000</timeout>
-            <weight>1</weight>
-        </redis>
-    </redises>
+        public RedisProxy(String config) {
+            super(config);
+        }
 
-ServerInfoResolver解析xml, 接口方法返回List<ServerInfo>
-
-    public class RedisInfoResolver extends ServerInfoResolver {
-
-        private static final String REDIS = "redis";
-
-        private static final String HOST = "host";
-        private static final String PORT = "port";
-        private static final String MAXACTIVE = "maxActive";
-        private static final String MAXIDLE = "maxIdle";
-        private static final String MINIDLE = "minIdle";
-        private static final String TIMEOUT = "timeout";
-        private static final String WEIGHT = "weight";
-
-
-        public RedisInfoResolver(String configPath) {
-            super(configPath);
+        public RedisProxy(String config, ProxyConfigure proxyConfigure) {
+            super(config, proxyConfigure);
         }
 
         @Override
-        public List<ServerInfo> get() {
-            Element root = getRoot(configPath);
-            return getClientInfoList(root);
-        }
-
-        private Element getRoot(String configFileName) {
-
-            Element root = null;
-            try {
-                SAXReader reader = new SAXReader();
-                URL url = ClassLoader.getSystemResource(configFileName);
-                Document document = reader.read(url);
-                root = document.getRootElement();
-            } catch (DocumentException e) {
-                e.printStackTrace();
-            }
-
-            return root;
-        }
-
-        private List<ServerInfo> getClientInfoList(Element root){
-
-            List<ServerInfo> list = new ArrayList<ServerInfo>();
-            List<Element> redisList = root.elements(REDIS);
-            for (Element element : redisList) {
-                ServerInfo serverInfo = getClientInfo(element);
-                list.add(serverInfo);
-            }
-            return list;
-        }
-
-        private ServerInfo getClientInfo(Element element){
-
-            String host = element.element(HOST).getStringValue();
-            int port = Integer.valueOf(element.element(PORT).getStringValue());
-            int maxActive = Integer.valueOf(element.element(MAXACTIVE).getStringValue());
-            int maxIdle = Integer.valueOf(element.element(MAXIDLE).getStringValue());
-            int minIdle = Integer.valueOf(element.element(MINIDLE).getStringValue());
-            int timeout = Integer.valueOf(element.element(TIMEOUT).getStringValue());
-            int weight = Integer.valueOf(element.element(WEIGHT).getStringValue());
-
+        protected ClosableClient create(ServerInfo serverInfo) {
+            Map<String, String> extendInfoMap = serverInfo.getExtendInfoMap();
             JedisPoolConfig config = new JedisPoolConfig();
-            config.setMaxTotal(maxActive);
-            config.setMaxIdle(maxIdle);
-            config.setMinIdle(minIdle);
+            int timeout = Integer.valueOf(extendInfoMap.get("timeout"));
+            config.setMaxTotal(Integer.valueOf(extendInfoMap.get("maxActive")));
+            config.setMaxIdle(Integer.valueOf(extendInfoMap.get("maxIdle")));
+            config.setMinIdle(Integer.valueOf(extendInfoMap.get("minIdle")));
             config.setMaxWaitMillis(timeout);
-            ClientConstructor clientClientConstructor = new ClientConstructor(
-                    RedisClient.class,
-                    config, host, port, timeout
-            );
-
-
-            ServerInfo serverInfo = new ServerInfo(host, port, weight, clientClientConstructor);
-            return serverInfo;
-        }
-
-    }
-
-### 运行代理类代码
-
-    Configure configure = new Configure.Builder()
-                    .checkServerAvailableIntervalMs(1000 * 60 * 10)
-                    .loadBalanceStrategy(LoadBalanceStrategy.WRR)
-                    .maxExceptionTimes(10)
-                    .minExceptionFrequencyMs(1000 * 2)
-                    .telnetTimeoutMs(1000 * 5)
-                    .build();
-
-    EasyProxy<RedisClient> redisProxy = new EasyProxy(new RedisInfoResolver("redis.xml") , configure);
-    for (int i = 0; i < 100; i++) {
-        Thread.sleep(5000);
-        RedisClient client = redisProxy.getClient();
-        if(client != null){
-            client.setex("hello", "world" + i, 60);
+            RedisClient redisClient = new RedisClient(config, serverInfo.getIp(), serverInfo.getPort(), timeout);
+            return redisClient;
         }
     }
 
-为了使用起来更加便捷, 可以对EasyProxy再做一成包装(把代理和客户端组合在一起, 切换客户端的操作对开发者完全透明)
+### 配置服务列表信息
 
-    public class RedisProxyService extends EasyProxy<RedisClient> {
+    <eproxy>
+        <zookeeperHosts>192.168.126.128:2181</zookeeperHosts>
+        <groupId>123</groupId>
+        <serverName>redisServer</serverName>
+        <defaultHosts>192.168.126.128:6380:1;192.168.126.128:6381:1</defaultHosts>
+        <extendInfo>
+            <property key="maxActive" value="100"></property>
+            <property key="maxIdle" value="100"></property>
+            <property key="minIdle" value="20"></property>
+            <property key="timeout" value="10000"></property>
+        </extendInfo>
+    </eproxy>
 
-        public RedisProxyService(String config) {
-            super(new RedisInfoResolver(config));
-        }
+## zookeeper动态更新服务列表
 
-        public RedisProxyService(String config, Configure configure) {
-            super(new RedisInfoResolver(config), configure);
-        }
+依赖第三方的调用服务常常会出现几种情况: 1、第三方服务添加新的机器 2、第三方服务所在机器被回收. 这就导致我们自己的服务也要跟着更新服务列表并重新发布. 为了避免这种情况的发生,
+此代理支持使用zookeeper来做第三方服务列表监控, 并更新到自己的服务当中来.
+看如上配置代码, <zookeeperHosts>即是zookeeper的服务集群host, 为了支持区分机房服务, 使用<groupId>来标识. 假如有2个机房A和B, 用123和456分别表示其groupId. 第三方服务通过
+节点`/easy/proxy/{groupId}/{serverName}/{ip:port}`来注册服务信息到zookeeper中, 本机房的调用服务就会更新列表
 
-        public String set(String key, String value) {
-            return getClient().set(key, value);
-        }
+## 调用测试
 
-        public String setex(String key, String value, int seconds) {
-            return getClient().setex(key, seconds, value);
-        }
+    @Test
+    public void redisTest() throws InterruptedException {
 
-        public String get(String key) {
-            return getClient().get(key);
+        ProxyConfigure proxyConfigure = new ProxyConfigure.Builder()
+                .checkServerAvailableIntervalMs(1000 * 10)
+                .maxCountExceptionSecondTime(60)
+                .maxExceptionTimes(5)
+                .loadBalanceStrategy(LoadBalanceStrategy.WRR)
+                .exceptionHandler(new DefaultExceptionHandler())
+                .switchPolicy(new DefaultSwitchPolicy(1, 2))
+                .zookeeperServerDataResolver(new DefaultZookeeperServerDataResolver())
+                .build();
+
+        RedisProxy redisProxy = new RedisProxy("redis-proxy.xml", proxyConfigure);
+        for (int i = 0; i < 100; i++) {
+            Thread.sleep(1000);
+            RedisClient client = redisProxy.getClient();
+            client.setex("hello", 60, "world" + i);
         }
     }
-
-测试如下
-
-    Configure configure = new Configure.Builder()
-                    .checkServerAvailableIntervalMs(1000 * 10)
-                    .loadBalanceStrategy(LoadBalanceStrategy.WRR)
-                    .maxExceptionTimes(10)
-                    .minExceptionFrequencyMs(1000 * 2)
-                    .telnetTimeoutMs(1000 * 5)
-                    .build();
-
-    RedisProxyService proxyService = new RedisProxyService("redis.xml", configure);
-    for (int i = 0; i < 100; i++) {
-        Thread.sleep(1000);
-        proxyService.setex("hello", "world" + i, 60);
-    }
-
-在执行期间, 你可以随意关闭其中一个redis服务, 看proxy是否会进行切换
-
-
-* 这里只是使用redis作为一个测例, 你完全可以写自己的mongo, mysql的客户端代理.
-* 默认地, 此代理服务不保证数据的完整性, 即调用失败就失败了. 你也可以实现ExceptionHandler在调用失败后做你想要的操作(默认只处理是否做切换连接服务的操作)

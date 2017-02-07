@@ -5,14 +5,10 @@ import com.eproxy.ProxyConfigure;
 import com.eproxy.ServerConfigure;
 import com.eproxy.ServerInfo;
 import org.apache.zookeeper.*;
-import org.apache.zookeeper.data.Stat;
-import org.apache.zookeeper.server.ServerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.prefs.NodeChangeEvent;
 
 /**
  * @author 谢俊权
@@ -23,7 +19,7 @@ public class ZookeeperClient {
     private static final Logger logger = LoggerFactory.getLogger(ZookeeperClient.class);
 
     private static ZooKeeper zooKeeper = null;
-    private static String nodePath = null;
+    private static String proxyNodePath = null;
 
     private ProxyConfigure proxyConfigure;
 
@@ -33,7 +29,7 @@ public class ZookeeperClient {
     public ZookeeperClient(final ProxyConfigure proxyConfig, ServerConfigure serverConfig) {
         this.proxyConfigure = proxyConfig;
         this.serverConfigure = serverConfig;
-        this.nodePath = getNodePath();
+        this.proxyNodePath = getProxyNodePath();
         long groupId = serverConfigure.getGroupId();
         ZookeeperHostsGetter zookeeperHostsGetter = proxyConfigure.getZookeeperHostsGetter();
         String hosts = (zookeeperHostsGetter != null) ? zookeeperHostsGetter.get(groupId) : serverConfig.getZookeeperHosts();
@@ -51,7 +47,7 @@ public class ZookeeperClient {
                 public void process(WatchedEvent watchedEvent) {
                     try {
                         String eventPath = watchedEvent.getPath();
-                        if (nodePath.equals(eventPath)) {
+                        if (eventPath.startsWith(proxyNodePath)) {
                             switch (watchedEvent.getType()){
                                 case None:
                                     break;
@@ -60,27 +56,41 @@ public class ZookeeperClient {
                                 case NodeDeleted:
                                     break;
                                 case NodeDataChanged:
-                                    byte[] data = zooKeeper.getData(nodePath, false, null);
-                                    syncServerData(data);
                                     break;
                                 case NodeChildrenChanged:
+                                    List<String> nodeList = zooKeeper.getChildren(proxyNodePath, false);
+                                    syncServerData(nodeList);
                                     break;
                             }
                         }
-                        zooKeeper.exists(nodePath, this);
+                        zooKeeper.exists(proxyNodePath, this);  //重新注册监听
                     } catch (Exception e) {
                         logger.error("error to get changed zookeeper node data and register watcher");
                     }
                 }
             };
-            zooKeeper.getData(nodePath, watcher, new AsyncCallback.DataCallback() {
+            zooKeeper.getChildren(proxyNodePath, watcher, new AsyncCallback.ChildrenCallback() {
                 @Override
-                public void processResult(int i, String s, Object o, byte[] bytes, Stat stat) {
-                    syncServerData(bytes);
+                public void processResult(int rc, String path, Object ctx, List<String> children) {
+                    syncServerData(children);
                 }
             }, null);
+
         } catch (Exception e) {
             logger.error("error to get zookeeper groupIdL{} server:{}", serverConfigure.getGroupId(), serverConfigure.getServerName(), e);
+        }
+    }
+
+    private void syncServerData(List<String> nodeList){
+        for (String node : nodeList) {
+            String serverNode = proxyNodePath + "/" + node;
+            byte[] data = new byte[0];
+            try {
+                data = zooKeeper.getData(serverNode, false, null);
+            } catch (Exception e) {
+                logger.error("error get zookeeper node data, node:{}", serverNode);
+            }
+            syncServerData(data);
         }
     }
 
@@ -96,7 +106,7 @@ public class ZookeeperClient {
         }
     }
 
-    private String getNodePath(){
+    private String getProxyNodePath(){
         long groupId = serverConfigure.getGroupId();
         String serverName = serverConfigure.getServerName();
         return new StringBuilder("/")

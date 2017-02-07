@@ -3,10 +3,7 @@ package com.eproxy;
 import com.eproxy.loadbalance.*;
 import com.eproxy.utils.TelnetUtil;
 import com.eproxy.zookeeper.ZookeeperClient;
-import com.eproxy.zookeeper.ZookeeperHostsGetter;
 import net.sf.cglib.proxy.Enhancer;
-import org.apache.zookeeper.AsyncCallback;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * 客户端代理
@@ -25,7 +23,7 @@ public abstract class EasyProxy<T>{
 
     private static final Logger logger = LoggerFactory.getLogger(EasyProxy.class);
 
-    private static final ReentrantLock reentrantLock = new ReentrantLock(false);
+    private static final ReadWriteLock lock = new ReentrantReadWriteLock(false);
 
     /**
      * 检查服务是否可用的定时器
@@ -87,16 +85,16 @@ public abstract class EasyProxy<T>{
      * @param serverInfoList 服务信息列表
      */
     private void initClientInfo(List<ServerInfo> serverInfoList) {
-        reentrantLock.lock();
+        lock.writeLock().lock();
         try{
             if(serverInfoList != null && !serverInfoList.isEmpty()){
-                this.unavailableServers.clear();
-                this.availableServers.clear();
-                this.availableServers.addAll(serverInfoList);
-                this.initLoadBalance();
+                unavailableServers.clear();
+                availableServers.clear();
+                availableServers.addAll(serverInfoList);
+                initLoadBalance();
             }
         }finally {
-            reentrantLock.unlock();
+            lock.writeLock().unlock();
         }
     }
 
@@ -141,9 +139,23 @@ public abstract class EasyProxy<T>{
         this.timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                for (ServerInfo serverInfo : unavailableServers) {
+                List<ServerInfo> list = new ArrayList<>();
+                lock.writeLock().lock();
+                try{
+                    for (ServerInfo serverInfo : unavailableServers) {
+                        ServerInfo newServerInfo = new ServerInfo(serverInfo.getIp(), serverInfo.getPort());
+                        list.add(newServerInfo);
+                    }
+                }finally {
+                    lock.writeLock().unlock();
+                }
+                for (ServerInfo serverInfo : list) {
                     if(TelnetUtil.isConnect(serverInfo.getIp(), serverInfo.getPort(), proxyConfigure.getTelnetTimeoutMs())){
-                        proxyNotifier.notifyServerAvailable(serverInfo);
+                        int index = unavailableServers.indexOf(serverInfo);
+                        ServerInfo originServerInfo = unavailableServers.get(index);
+                        if(originServerInfo != null){
+                            proxyNotifier.notifyServerAvailable(originServerInfo);
+                        }
                     }
                 }
             }
@@ -175,22 +187,23 @@ public abstract class EasyProxy<T>{
      * @return
      */
     private ClosableClient getClient(int index){
-        reentrantLock.lock();
+        lock.readLock().lock();
+        ServerInfo serverInfo = null;
         try{
-            if(this.availableServers.isEmpty()){
+            if(availableServers.isEmpty()){
                 logger.error("available server list is empty");
                 return null;
             }
-            ServerInfo serverInfo = availableServers.get(index);
-            ClosableClient client = serverInfo.getClient();
-            if(client == null){
-                client = createProxyClient(serverInfo);
-                serverInfo.setClient(client);
-            }
-            return client;
+            serverInfo = availableServers.get(index);
         }finally {
-            reentrantLock.unlock();
+            lock.readLock().unlock();
         }
+        ClosableClient client = serverInfo.getClient();
+        if(client == null){
+            client = createProxyClient(serverInfo);
+            serverInfo.setClient(client);
+        }
+        return client;
     }
 
     /**
@@ -227,17 +240,19 @@ public abstract class EasyProxy<T>{
      * @param serverInfo 服务客户端信息
      */
      void toAvailable(ServerInfo serverInfo) {
-         reentrantLock.lock();
+         lock.writeLock().lock();
          try{
-             if(!this.availableServers.contains(serverInfo)){
+             if(unavailableServers.contains(serverInfo)){
+                 unavailableServers.remove(serverInfo);
+             }
+             if(!availableServers.contains(serverInfo)){
                  ClosableClient client = createProxyClient(serverInfo);
                  serverInfo.setClient(client);
-                 this.availableServers.add(serverInfo);
-                 this.unavailableServers.remove(serverInfo);
-                 this.initLoadBalance();
+                 availableServers.add(serverInfo);
              }
+             initLoadBalance();
          }finally {
-             reentrantLock.unlock();
+             lock.writeLock().unlock();
          }
     }
 
@@ -246,16 +261,18 @@ public abstract class EasyProxy<T>{
      * @param serverInfo 服务客户端信息
      */
     void toUnavailable(ServerInfo serverInfo) {
-        reentrantLock.lock();
+        lock.writeLock().lock();
         try{
             if(this.availableServers.contains(serverInfo)) {
-                this.destroy(serverInfo);
-                this.availableServers.remove(serverInfo);
-                this.unavailableServers.add(serverInfo);
-                this.initLoadBalance();
+                destroy(serverInfo);
+                availableServers.remove(serverInfo);
             }
+            if(!unavailableServers.contains(serverInfo)){
+                unavailableServers.add(serverInfo);
+            }
+            initLoadBalance();
         }finally {
-            reentrantLock.unlock();
+            lock.writeLock().unlock();
         }
     }
 
