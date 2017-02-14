@@ -3,7 +3,6 @@ import com.eproxy.exception.DefaultExceptionHandler;
 import com.eproxy.exception.DefaultSwitchPolicy;
 import com.eproxy.loadbalance.LoadBalanceStrategy;
 import com.eproxy.zookeeper.DefaultZookeeperServerDataResolver;
-import com.eproxy.zookeeper.ZookeeperHostsGetter;
 import org.junit.Test;
 import redisclient.RedisClient;
 import redisclient.RedisProxy;
@@ -18,24 +17,17 @@ public class JunitTest {
     public void redisTest() throws InterruptedException {
 
         ProxyConfigure proxyConfigure = new ProxyConfigure.Builder()
+                .telnetTimeoutMs(1000 * 2)
                 .checkServerAvailableIntervalMs(1000 * 10)
-                .maxCountExceptionSecondTime(60)
-                .maxExceptionTimes(5)
                 .loadBalanceStrategy(LoadBalanceStrategy.WRR)
                 .exceptionHandler(new DefaultExceptionHandler())
-                .switchPolicy(new DefaultSwitchPolicy(1, 2))
+                .switchPolicy(new DefaultSwitchPolicy(60, 2))
                 .zookeeperServerDataResolver(new DefaultZookeeperServerDataResolver())
-                .zookeeperHostsGetter(new ZookeeperHostsGetter() {
-                    @Override
-                    public String get(long groupId) {
-                        return "192.168.126.128:2181";
-                    }
-                })
                 .build();
 
         RedisProxy redisProxy = new RedisProxy("redis-proxy.xml", proxyConfigure);
         for (int i = 0; i < 100; i++) {
-            Thread.sleep(1000);
+            Thread.sleep(10000);
             RedisClient client = redisProxy.getClient();
             client.setex("hello", 60, "world" + i);
         }

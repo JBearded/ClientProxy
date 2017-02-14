@@ -35,7 +35,7 @@ public class ProxyConfigure {
     /**
      * 客户端调用报错的最大次数, 如果大于这个次数则设置此客户端不可用
      */
-    private int maxExceptionTimes = 2;
+    private int maxExceptionTimes = 3;
 
     /**
      * 负载均衡的策略
@@ -56,8 +56,6 @@ public class ProxyConfigure {
 
     public ProxyConfigure(Builder builder) {
         this.checkServerAvailableIntervalMs = builder.checkServerAvailableIntervalMs;
-        this.maxCountExceptionSecondTime = builder.maxCountExceptionSecondTime;
-        this.maxExceptionTimes = builder.maxExceptionTimes;
         this.telnetTimeoutMs = builder.telnetTimeoutMs;
         this.loadBalanceStrategy = builder.loadBalanceStrategy;
         this.exceptionHandler = builder.exceptionHandler;
@@ -84,14 +82,6 @@ public class ProxyConfigure {
         return telnetTimeoutMs;
     }
 
-    public int getMaxCountExceptionSecondTime() {
-        return maxCountExceptionSecondTime;
-    }
-
-    public int getMaxExceptionTimes() {
-        return maxExceptionTimes;
-    }
-
     public LoadBalanceStrategy getLoadBalanceStrategy() {
         return loadBalanceStrategy;
     }
@@ -116,10 +106,6 @@ public class ProxyConfigure {
 
         private long checkServerAvailableIntervalMs = 1000 * 60 * 10;
 
-        private int maxCountExceptionSecondTime = 60;
-
-        private int maxExceptionTimes = 2;
-
         private int telnetTimeoutMs = 1000 * 2;
 
         private LoadBalanceStrategy loadBalanceStrategy = LoadBalanceStrategy.HASH;
@@ -134,16 +120,6 @@ public class ProxyConfigure {
 
         public Builder checkServerAvailableIntervalMs(long checkServerAvailableIntervalMs){
             this.checkServerAvailableIntervalMs = checkServerAvailableIntervalMs;
-            return this;
-        }
-
-        public Builder maxCountExceptionSecondTime(int maxCountExceptionSecondTime){
-            this.maxCountExceptionSecondTime = maxCountExceptionSecondTime;
-            return this;
-        }
-
-        public Builder maxExceptionTimes(int maxExceptionTimes){
-            this.maxExceptionTimes = maxExceptionTimes;
             return this;
         }
 

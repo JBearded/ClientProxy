@@ -4,7 +4,6 @@ import com.eproxy.ServerConfigureResolver;
 import com.eproxy.ServerInfo;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author xiejunquan
@@ -13,8 +12,9 @@ import java.util.Map;
 public class DefaultZookeeperServerDataResolver implements ZookeeperServerDataResolver{
 
     @Override
-    public List<ServerInfo> get(byte[] data) {
+    public ServerInfo get(String data) {
         String hosts = new String(data);
-        return ServerConfigureResolver.getServerInfoList(hosts, null);
+        List<ServerInfo> list = ServerConfigureResolver.getServerInfoList(hosts, null);
+        return (list.isEmpty()) ? null : list.get(0);
     }
 }

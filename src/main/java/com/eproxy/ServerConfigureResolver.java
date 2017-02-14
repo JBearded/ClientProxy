@@ -21,7 +21,7 @@ public abstract class ServerConfigureResolver {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerConfigureResolver.class);
 
-    private static final String ELEMENT_EPROXY = "eproxy";
+    private static final String ELEMENT_ZOOKEEPER_HOSTS = "zookeeperHosts";
     private static final String ELEMENT_GOUPID = "groupId";
     private static final String ELEMENT_SERVERNAME = "serverName";
     private static final String ELEMENT_HOSTS = "defaultHosts";
@@ -52,6 +52,7 @@ public abstract class ServerConfigureResolver {
     private static ServerConfigure getServerConfigure(Element root){
         ServerConfigure serverConfigure = new ServerConfigure();
         if(root != null){
+            String zookeeperHosts = root.elementTextTrim(ELEMENT_ZOOKEEPER_HOSTS);
             long groupId = Long.valueOf(root.elementTextTrim(ELEMENT_GOUPID));
             String serverName = root.elementTextTrim(ELEMENT_SERVERNAME);
             String defaultHosts = root.elementTextTrim(ELEMENT_HOSTS);
@@ -64,6 +65,7 @@ public abstract class ServerConfigureResolver {
                 extendInfo.put(key, value);
             }
             List<ServerInfo> serverInfoList = getServerInfoList(defaultHosts, extendInfo);
+            serverConfigure.setZookeeperHosts(zookeeperHosts);
             serverConfigure.setGroupId(groupId);
             serverConfigure.setServerName(serverName);
             serverConfigure.setExtendInfo(extendInfo);

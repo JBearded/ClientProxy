@@ -90,6 +90,9 @@ public class ServerInfo {
 
     @Override
     public boolean equals(Object obj) {
+        if(!(obj instanceof ServerInfo)){
+            return false;
+        }
         ServerInfo serverInfo = (ServerInfo) obj;
         return ip.equals(serverInfo.getIp()) && port == serverInfo.getPort();
     }
@@ -104,6 +107,6 @@ public class ServerInfo {
 
     @Override
     public String toString() {
-        return new StringBuilder().append(ip).append(";").append(port).append(";").append(weight).toString();
+        return new StringBuilder().append(ip).append(":").append(port).append(":").append(weight).toString();
     }
 }

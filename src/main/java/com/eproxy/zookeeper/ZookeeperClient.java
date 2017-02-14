@@ -4,10 +4,14 @@ import com.eproxy.EasyProxyNotifier;
 import com.eproxy.ProxyConfigure;
 import com.eproxy.ServerConfigure;
 import com.eproxy.ServerInfo;
-import org.apache.zookeeper.*;
+import org.apache.zookeeper.AsyncCallback;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -18,15 +22,16 @@ public class ZookeeperClient {
 
     private static final Logger logger = LoggerFactory.getLogger(ZookeeperClient.class);
 
-    private static ZooKeeper zooKeeper = null;
-    private static String proxyNodePath = null;
+    private static ZooKeeper zooKeeper;
+    private static String proxyNodePath;
 
+    private EasyProxyNotifier notifier;
     private ProxyConfigure proxyConfigure;
-
     private ServerConfigure serverConfigure;
 
 
-    public ZookeeperClient(final ProxyConfigure proxyConfig, ServerConfigure serverConfig) {
+    public ZookeeperClient(EasyProxyNotifier notifier, ProxyConfigure proxyConfig, ServerConfigure serverConfig) {
+        this.notifier = notifier;
         this.proxyConfigure = proxyConfig;
         this.serverConfigure = serverConfig;
         this.proxyNodePath = getProxyNodePath();
@@ -46,8 +51,9 @@ public class ZookeeperClient {
                 @Override
                 public void process(WatchedEvent watchedEvent) {
                     try {
+                        zooKeeper.getChildren(proxyNodePath, this);  //重新注册监听
                         String eventPath = watchedEvent.getPath();
-                        if (eventPath.startsWith(proxyNodePath)) {
+                        if (eventPath != null && eventPath.startsWith(proxyNodePath)) {
                             switch (watchedEvent.getType()){
                                 case None:
                                     break;
@@ -58,14 +64,13 @@ public class ZookeeperClient {
                                 case NodeDataChanged:
                                     break;
                                 case NodeChildrenChanged:
-                                    List<String> nodeList = zooKeeper.getChildren(proxyNodePath, false);
+                                    List<String> nodeList = zooKeeper.getChildren(proxyNodePath, true);
                                     syncServerData(nodeList);
                                     break;
                             }
                         }
-                        zooKeeper.exists(proxyNodePath, this);  //重新注册监听
                     } catch (Exception e) {
-                        logger.error("error to get changed zookeeper node data and register watcher");
+                        logger.error("error to get changed zookeeper node data and register watcher", e);
                     }
                 }
             };
@@ -82,28 +87,14 @@ public class ZookeeperClient {
     }
 
     private void syncServerData(List<String> nodeList){
-        for (String node : nodeList) {
-            String serverNode = proxyNodePath + "/" + node;
-            byte[] data = new byte[0];
-            try {
-                data = zooKeeper.getData(serverNode, false, null);
-            } catch (Exception e) {
-                logger.error("error get zookeeper node data, node:{}", serverNode);
-            }
-            syncServerData(data);
-        }
-    }
-
-    private void syncServerData(byte[] bytes){
-        if(bytes != null || bytes.length > 0){
-            EasyProxyNotifier notifier = EasyProxyNotifier.getInstance();
+        List<ServerInfo> list = new ArrayList<>();
+        for(String node : nodeList){
             ZookeeperServerDataResolver resolver = proxyConfigure.getZookeeperServerDataResolver();
-            List<ServerInfo> list = resolver.get(bytes);
-            for (ServerInfo serverInfo : list) {
-                System.out.println(serverInfo);
-                notifier.notifyServerAvailable(serverInfo);
-            }
+            ServerInfo serverInfo = resolver.get(node);
+            serverInfo.setExtendInfoMap(serverConfigure.getExtendInfo());
+            list.add(serverInfo);
         }
+        notifier.updateAvailableServers(list);
     }
 
     private String getProxyNodePath(){

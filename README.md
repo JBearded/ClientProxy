@@ -121,9 +121,8 @@
 
         ProxyConfigure proxyConfigure = new ProxyConfigure.Builder()
                 .checkServerAvailableIntervalMs(1000 * 10)
-                .maxCountExceptionSecondTime(60)
-                .maxExceptionTimes(5)
                 .loadBalanceStrategy(LoadBalanceStrategy.WRR)
+                .telnetTimeoutMs(1000 * 2)
                 .exceptionHandler(new DefaultExceptionHandler())
                 .switchPolicy(new DefaultSwitchPolicy(1, 2))
                 .zookeeperServerDataResolver(new DefaultZookeeperServerDataResolver())

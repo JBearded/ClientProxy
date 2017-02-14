@@ -71,12 +71,11 @@ public abstract class EasyProxy<T>{
      * @param pConfig 配置信息
      */
     private void init(String config, ProxyConfigure pConfig){
-        this.proxyNotifier = EasyProxyNotifier.getInstance();
+        this.proxyNotifier = new EasyProxyNotifier(this);
         this.proxyConfigure = pConfig;
         this.serverConfigure = ServerConfigureResolver.get(config);
         this.initClientInfo(serverConfigure.getServerInfoList());
         this.initZookeeper();
-        this.proxyNotifier.subClientProxy(this);
         this.scheduleCheckServerAvailable();
     }
 
@@ -84,13 +83,22 @@ public abstract class EasyProxy<T>{
      * 初始化服务信息
      * @param serverInfoList 服务信息列表
      */
-    private void initClientInfo(List<ServerInfo> serverInfoList) {
+    void initClientInfo(List<ServerInfo> serverInfoList) {
         lock.writeLock().lock();
         try{
             if(serverInfoList != null && !serverInfoList.isEmpty()){
+                for(ServerInfo serverInfo : availableServers){
+                    if(!serverInfoList.contains(serverInfo)){
+                        destroy(serverInfo);
+                        availableServers.remove(serverInfo);
+                    }
+                }
+                for(ServerInfo serverInfo : serverInfoList){
+                    if(!availableServers.contains(serverInfo)){
+                        availableServers.add(serverInfo);
+                    }
+                }
                 unavailableServers.clear();
-                availableServers.clear();
-                availableServers.addAll(serverInfoList);
                 initLoadBalance();
             }
         }finally {
@@ -99,7 +107,7 @@ public abstract class EasyProxy<T>{
     }
 
     private void initZookeeper(){
-        this.zookeeperClient = new ZookeeperClient(proxyConfigure, serverConfigure);
+        this.zookeeperClient = new ZookeeperClient(proxyNotifier, proxyConfigure, serverConfigure);
         this.zookeeperClient.asyncServerData();
     }
 
@@ -140,21 +148,26 @@ public abstract class EasyProxy<T>{
             @Override
             public void run() {
                 List<ServerInfo> list = new ArrayList<>();
-                lock.writeLock().lock();
+                lock.readLock().lock();
                 try{
                     for (ServerInfo serverInfo : unavailableServers) {
                         ServerInfo newServerInfo = new ServerInfo(serverInfo.getIp(), serverInfo.getPort());
                         list.add(newServerInfo);
                     }
                 }finally {
-                    lock.writeLock().unlock();
+                    lock.readLock().unlock();
                 }
                 for (ServerInfo serverInfo : list) {
                     if(TelnetUtil.isConnect(serverInfo.getIp(), serverInfo.getPort(), proxyConfigure.getTelnetTimeoutMs())){
-                        int index = unavailableServers.indexOf(serverInfo);
-                        ServerInfo originServerInfo = unavailableServers.get(index);
-                        if(originServerInfo != null){
-                            proxyNotifier.notifyServerAvailable(originServerInfo);
+                        lock.readLock().lock();
+                        try{
+                            int index = unavailableServers.indexOf(serverInfo);
+                            ServerInfo originServerInfo = unavailableServers.get(index);
+                            if(originServerInfo != null){
+                                proxyNotifier.serverAvailable(originServerInfo);
+                            }
+                        }finally {
+                            lock.readLock().unlock();
                         }
                     }
                 }
@@ -214,13 +227,17 @@ public abstract class EasyProxy<T>{
     protected abstract ClosableClient create(ServerInfo serverInfo);
 
     protected ClosableClient createProxyClient(ServerInfo serverInfo){
-        ClosableClient client = create(serverInfo);
-        Enhancer enhancer = new Enhancer();
-        enhancer.setSuperclass(client.getClass());
-        ClientInterceptor handler = new ClientInterceptor(client, serverInfo, proxyConfigure);
-        enhancer.setCallback(handler);
-        ClosableClient proxyClient = (ClosableClient) enhancer.create();
-        return proxyClient;
+        try{
+            ClosableClient client = create(serverInfo);
+            Enhancer enhancer = new Enhancer();
+            enhancer.setSuperclass(client.getClass());
+            ClientInterceptor handler = new ClientInterceptor(client, proxyNotifier, serverInfo, proxyConfigure);
+            enhancer.setCallback(handler);
+            return (ClosableClient) enhancer.create();
+        }catch (Exception e){
+            logger.error("error to create proxy client, info:{}", serverInfo, e);
+        }
+        return null;
     }
 
     /**
@@ -248,9 +265,11 @@ public abstract class EasyProxy<T>{
              if(!availableServers.contains(serverInfo)){
                  ClosableClient client = createProxyClient(serverInfo);
                  serverInfo.setClient(client);
-                 availableServers.add(serverInfo);
+                 if(client != null){
+                     availableServers.add(serverInfo);
+                     initLoadBalance();
+                 }
              }
-             initLoadBalance();
          }finally {
              lock.writeLock().unlock();
          }
@@ -263,14 +282,14 @@ public abstract class EasyProxy<T>{
     void toUnavailable(ServerInfo serverInfo) {
         lock.writeLock().lock();
         try{
-            if(this.availableServers.contains(serverInfo)) {
-                destroy(serverInfo);
-                availableServers.remove(serverInfo);
-            }
             if(!unavailableServers.contains(serverInfo)){
                 unavailableServers.add(serverInfo);
             }
-            initLoadBalance();
+            if(this.availableServers.contains(serverInfo)) {
+                destroy(serverInfo);
+                availableServers.remove(serverInfo);
+                initLoadBalance();
+            }
         }finally {
             lock.writeLock().unlock();
         }

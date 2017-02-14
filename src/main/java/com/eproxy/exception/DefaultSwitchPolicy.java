@@ -37,7 +37,7 @@ public class DefaultSwitchPolicy implements SwitchPolicy{
             long currTime = exceptionInfo.currentExceptionTime;
             int times = exceptionInfo.exceptionTimes;
             long timeLength = (currTime - fistTime) / 1000L;
-            if(times >= maxExceptionTimes && timeLength < maxCountExceptionSecondTime) {
+            if(timeLength >= maxCountExceptionSecondTime || times >= maxExceptionTimes) {
                 need = true;
             }
         }
