@@ -159,7 +159,7 @@ public abstract class EasyProxy<T>{
                 }
                 for (ServerInfo serverInfo : list) {
                     if(TelnetUtil.isConnect(serverInfo.getIp(), serverInfo.getPort(), proxyConfigure.getTelnetTimeoutMs())){
-                        lock.readLock().lock();
+                        lock.writeLock().lock();
                         try{
                             int index = unavailableServers.indexOf(serverInfo);
                             ServerInfo originServerInfo = unavailableServers.get(index);
@@ -167,7 +167,7 @@ public abstract class EasyProxy<T>{
                                 proxyNotifier.serverAvailable(originServerInfo);
                             }
                         }finally {
-                            lock.readLock().unlock();
+                            lock.writeLock().unlock();
                         }
                     }
                 }
