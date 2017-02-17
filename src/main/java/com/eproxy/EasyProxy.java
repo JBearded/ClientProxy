@@ -23,7 +23,7 @@ public abstract class EasyProxy<T>{
 
     private static final Logger logger = LoggerFactory.getLogger(EasyProxy.class);
 
-    private static final ReadWriteLock lock = new ReentrantReadWriteLock(false);
+    private static final ReadWriteLock rwLock = new ReentrantReadWriteLock(false);
 
     /**
      * 检查服务是否可用的定时器
@@ -84,7 +84,7 @@ public abstract class EasyProxy<T>{
      * @param serverInfoList 服务信息列表
      */
     void initClientInfo(List<ServerInfo> serverInfoList) {
-        lock.writeLock().lock();
+        rwLock.writeLock().lock();
         try{
             if(serverInfoList != null && !serverInfoList.isEmpty()){
                 for(ServerInfo serverInfo : availableServers){
@@ -102,7 +102,7 @@ public abstract class EasyProxy<T>{
                 initLoadBalance();
             }
         }finally {
-            lock.writeLock().unlock();
+            rwLock.writeLock().unlock();
         }
     }
 
@@ -148,18 +148,18 @@ public abstract class EasyProxy<T>{
             @Override
             public void run() {
                 List<ServerInfo> list = new ArrayList<>();
-                lock.readLock().lock();
+                rwLock.readLock().lock();
                 try{
                     for (ServerInfo serverInfo : unavailableServers) {
                         ServerInfo newServerInfo = new ServerInfo(serverInfo.getIp(), serverInfo.getPort());
                         list.add(newServerInfo);
                     }
                 }finally {
-                    lock.readLock().unlock();
+                    rwLock.readLock().unlock();
                 }
                 for (ServerInfo serverInfo : list) {
                     if(TelnetUtil.isConnect(serverInfo.getIp(), serverInfo.getPort(), proxyConfigure.getTelnetTimeoutMs())){
-                        lock.writeLock().lock();
+                        rwLock.writeLock().lock();
                         try{
                             int index = unavailableServers.indexOf(serverInfo);
                             ServerInfo originServerInfo = unavailableServers.get(index);
@@ -167,7 +167,7 @@ public abstract class EasyProxy<T>{
                                 proxyNotifier.serverAvailable(originServerInfo);
                             }
                         }finally {
-                            lock.writeLock().unlock();
+                            rwLock.writeLock().unlock();
                         }
                     }
                 }
@@ -200,7 +200,7 @@ public abstract class EasyProxy<T>{
      * @return
      */
     private ClosableClient getClient(int index){
-        lock.readLock().lock();
+        rwLock.readLock().lock();
         ServerInfo serverInfo = null;
         try{
             if(availableServers.isEmpty()){
@@ -209,7 +209,7 @@ public abstract class EasyProxy<T>{
             }
             serverInfo = availableServers.get(index);
         }finally {
-            lock.readLock().unlock();
+            rwLock.readLock().unlock();
         }
         ClosableClient client = serverInfo.getClient();
         if(client == null){
@@ -257,7 +257,7 @@ public abstract class EasyProxy<T>{
      * @param serverInfo 服务客户端信息
      */
      void toAvailable(ServerInfo serverInfo) {
-         lock.writeLock().lock();
+         rwLock.writeLock().lock();
          try{
              if(unavailableServers.contains(serverInfo)){
                  unavailableServers.remove(serverInfo);
@@ -271,7 +271,7 @@ public abstract class EasyProxy<T>{
                  }
              }
          }finally {
-             lock.writeLock().unlock();
+             rwLock.writeLock().unlock();
          }
     }
 
@@ -280,7 +280,7 @@ public abstract class EasyProxy<T>{
      * @param serverInfo 服务客户端信息
      */
     void toUnavailable(ServerInfo serverInfo) {
-        lock.writeLock().lock();
+        rwLock.writeLock().lock();
         try{
             if(!unavailableServers.contains(serverInfo)){
                 unavailableServers.add(serverInfo);
@@ -291,7 +291,7 @@ public abstract class EasyProxy<T>{
                 initLoadBalance();
             }
         }finally {
-            lock.writeLock().unlock();
+            rwLock.writeLock().unlock();
         }
     }
 
